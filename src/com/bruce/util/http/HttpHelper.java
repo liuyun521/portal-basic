@@ -30,8 +30,16 @@ import java.util.*;
  */
 public class HttpHelper
 {
-	/** 默认缓冲区大小 */ 
-	private static final int DEFAULT_BUFFER_SIZE = 4096;
+	/** HTTP URL 标识 */
+	private static final String HTTP_SCHEMA			= "http";
+	/** HTTPS URL 标识 */
+	private static final String HTTPS_SCHEMA		= "https";
+	/** HTTP 默认端口 */
+	private static final int HTTP_DEFAULT_PORT		= 80;
+	/** HTTPS 默认端口 */
+	private static final int HTTPS_DEFAULT_PORT		= 443;
+	/** 默认缓冲区大小 */
+	private static final int DEFAULT_BUFFER_SIZE	= 4096;
 	
 	private static ServletContext servletContext;
 	
@@ -544,17 +552,43 @@ public class HttpHelper
 		return GeneralHelper.str2Date(str, format);
 	}
 	
-	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性或成员变量名完全一致) */
 	public final static <T> T createFormBean(HttpServletRequest request, Class<T> clazz)
 	{
 		return createFormBean(request, clazz, null);
 	}
 
-	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性) */
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性或成员变量) */
 	public final static <T> T createFormBean(HttpServletRequest request, Class<T> clazz, Map<String, String> keyMap)
 	{
+		Map<String, String[]> valueMap = getParamMap(request);
+		return BeanHelper.createBean(clazz, valueMap, keyMap);
+	}
+	
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
+	public final static <T> T createFormBeanByProperties(HttpServletRequest request, Class<T> clazz)
+	{
+		return createFormBeanByProperties(request, clazz, null);
+	}
+
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性) */
+	public final static <T> T createFormBeanByProperties(HttpServletRequest request, Class<T> clazz, Map<String, String> keyMap)
+	{
 		Map<String, String[]> properties = getParamMap(request);
-		return BeanHelper.createBean(clazz, properties, keyMap);
+		return BeanHelper.createBeanByProperties(clazz, properties, keyMap);
+	}
+	
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性或成员变量名完全一致) */
+	public final static <T> T createFormBeanByFieldValues(HttpServletRequest request, Class<T> clazz)
+	{
+		return createFormBeanByFieldValues(request, clazz, null);
+	}
+
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性或成员变量) */
+	public final static <T> T createFormBeanByFieldValues(HttpServletRequest request, Class<T> clazz, Map<String, String> keyMap)
+	{
+		Map<String, String[]> values = getParamMap(request);
+		return BeanHelper.createBeanByFieldValues(clazz, values, keyMap);
 	}
 	
 	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
@@ -568,6 +602,32 @@ public class HttpHelper
 	{
         Map<String, String[]> properties = getParamMap(request);
         BeanHelper.setProperties(bean, properties, keyMap);
+	}
+
+	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 成员变量名完全一致) */
+	public final static <T> void fillFormBeanFieldValues(HttpServletRequest request, T bean)
+	{
+		fillFormBeanFieldValues(request, bean, null);
+	}
+	
+	/** 使用表单元素填充 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 成员变量) */
+	public final static <T> void fillFormBeanFieldValues(HttpServletRequest request, T bean, Map<String, String> keyMap)
+	{
+        Map<String, String[]> values = getParamMap(request);
+        BeanHelper.setFieldValues(bean, values, keyMap);
+	}
+
+	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 属性或成员变量名完全一致) */
+	public final static <T> void fillFormBeanPropertiesOrFieldValues(HttpServletRequest request, T bean)
+	{
+		fillFormBeanPropertiesOrFieldValues(request, bean, null);
+	}
+	
+	/** 使用表单元素填充 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性或成员变量) */
+	public final static <T> void fillFormBeanPropertiesOrFieldValues(HttpServletRequest request, T bean, Map<String, String> keyMap)
+	{
+        Map<String, String[]> valueMap = getParamMap(request);
+        BeanHelper.setPropertiesOrFieldValues(bean, valueMap, keyMap);
 	}
 
 	/** 获取 {@link HttpSession} 对象，如果没有则进行创建。 */
@@ -639,7 +699,25 @@ public class HttpHelper
 		addCookie(response, new Cookie(name, value));
 	}
 	
-	/** 获取 request path 在文件系统的绝对路径,
+	/** 获取 URL 的  BASE 路径 */
+	public final static String getRequestBasePath(HttpServletRequest request)
+	{
+		String scheme		= request.getScheme();
+		int serverPort		= request.getServerPort();
+		StringBuilder sb	= new StringBuilder(scheme).append("://").append(request.getServerName());
+		
+		if	(!(
+				(scheme.equals(HTTP_SCHEMA) && serverPort == HTTP_DEFAULT_PORT) ||
+				(scheme.equals(HTTPS_SCHEMA) && serverPort == HTTPS_DEFAULT_PORT) 
+			))
+				sb.append(":").append(request.getServerPort());
+		
+			sb.append(request.getContextPath()).append("/");
+
+		return sb.toString();
+	}
+	
+	/** 获取 URL 地址在文件系统的绝对路径,
 	 * 
 	 * Servlet 2.4 以上通过 request.getServletContext().getRealPath() 获取,
 	 * Servlet 2.4 以下通过 request.getRealPath() 获取。
@@ -703,6 +781,14 @@ public class HttpHelper
 		}
 
 		return platform;
+	}
+	
+	/** 禁止浏览器缓存当前页面 */
+	public final static void setNoCacheHeader(HttpServletResponse response)
+	{
+		response.setHeader("Pragma", "No-cache");
+		response.setHeader("Cache-Control", "no-cache");
+		response.setDateHeader("Expires", 0);
 	}
 	
 	/** 检查请求是否来自非 Windows 系统的浏览器 */

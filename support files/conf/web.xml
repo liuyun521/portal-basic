@@ -132,11 +132,64 @@
 	<listener>
 		<listener-class>com.bruce.app.AppListener</listener-class>
 	</listener>
-
+	
+	<!-- Freemarker 模板处理器 -->
+	<servlet>
+		<!-- 模板处理器 Servlet -->
+		<servlet-name>freemarker</servlet-name>
+		<servlet-class>freemarker.ext.servlet.FreemarkerServlet</servlet-class>
+		<!-- <servlet-class>global.MyFreemarkerServlet</servlet-class> -->
+		
+		<!-- ########## FreemarkerServlet 配置参数 ########## -->
+		<init-param>
+			<!-- 模板文件路径 -->
+			<param-name>TemplatePath</param-name>
+			<param-value>/</param-value>
+		</init-param>
+		<init-param>
+			<!-- 是否禁止浏览器缓存 -->
+			<param-name>NoCache</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<init-param>
+			<!--  页面编码格式 -->
+			<param-name>ContentType</param-name>
+			<param-value>text/html; charset=UTF-8</param-value>
+		</init-param>
+		<!-- ############################################### -->
+		
+		<!-- ####### Freemarker Configuration 配置参数 ###### -->
+		<init-param>
+			<!-- 模板更新延时（ 0 只对开发使用! 否则使用大一点的值） -->
+			<param-name>template_update_delay</param-name>
+			<param-value>0</param-value>
+		</init-param>
+		<init-param>
+			<!-- 模板文件的编码方式. -->
+			<param-name>default_encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+		<init-param>
+			<!-- 是否去除页面中多余的空格符 -->
+			<param-name>whitespace_stripping</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<!-- ############################################### -->
+		
+		<!-- 应用程序启动时加载 FreemarkerServlet -->
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+	  <!-- 处理所有以 ".ftl" 结尾的 URL 请求 -->
+	  <servlet-name>freemarker</servlet-name>
+	  <url-pattern>*.ftl</url-pattern>
+	</servlet-mapping>
+	
 	<welcome-file-list>
 		<welcome-file>index.html</welcome-file>
 		<welcome-file>index.htm</welcome-file>
 		<welcome-file>index.jsp</welcome-file>
+		<welcome-file>index.ftl</welcome-file>
 		<welcome-file>index.action</welcome-file>
 	</welcome-file-list>
 </web-app>

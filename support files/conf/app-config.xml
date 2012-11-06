@@ -2,40 +2,20 @@
 <CONFIG	xmlns="http://www.bruce.com"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://www.bruce.com xsd/app-config.xsd">
+		
 	<!-- 系统配置（必填） -->
 	<system>
-		<!-- Session 管理器（可选） -->
-		<!-- 可以配置多个，不同的 Session 管理器可使用不同的方式连接不同的数据库 -->
 		<database-session-managers>
-			<!-- name - 名称（必填），class - 管理器实现类（必填） -->
-			<manager name="localhost.portal" class="com.bruce.util.basedao.hbn.HibernateSessionMgr" />
-			<manager name="localhost.portal-2" class="com.bruce.util.basedao.jdbc.ProxoolSessionMgr">
-				<!-- 传递给 Session 管理器的初始化参数 -->
-				<initialize-args>
-				<!-- 第一个参数 -->
-					<arg>portal-2</arg>
-				<!-- 第二个参数 -->
-					<arg>proxool-2.xml</arg>
-				</initialize-args>
-			</manager>
-			<manager name="localhost.portal-3" class="com.bruce.util.basedao.mybatis.MyBatisSessionMgr">
-				<initialize-args>
-					<arg></arg>
-					<arg>development</arg>
-				</initialize-args>
-			</manager>
+			<manager name="session-mgr-1" class="com.bruce.util.basedao.jdbc.ProxoolSessionMgr" />
+			<manager name="session-mgr-2" class="com.bruce.util.basedao.mybatis.MyBatisSessionMgr" />
+			<manager name="session-mgr-3" class="com.bruce.util.basedao.hbn.HibernateSessionMgr" />
 		</database-session-managers>
-		<!-- 用户配置信息解析器（可选）：解析 '<user></user>' 中的配置信息 -->
-		<user-config-parser class="global.UserConfig" />
-		<!-- 应用程序生命周期监听器（可选）：接收应用程序启动和关闭通知 -->
-		<app-life-cycle-listener class="global.PortalLifeCycleListener" />
+		<app-life-cycle-listener class="global.MyLifeCycleListener" />
+		<user-config-parser class="global.MyConfigParser" />
 	</system>
 	
 	<!-- 用户配置（可选） -->
 	<user>
-		<!-- 用户自定义配置信息（可选，自定义） -->
-		<my-conf myattr="my attr">
-			<!-- other config -->
-		</my-conf>
+		<my-home>http://www.cnblogs.com/ldcsaa/</my-home>
 	</user>
 </CONFIG>

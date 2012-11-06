@@ -16,7 +16,6 @@ import com.bruce.util.basedao.AbstractFacade;
  * 
  * JDBC Facade 实现类
  *
- * @param <M>
  */
 public abstract class JdbcFacade extends AbstractFacade<AbstractJdbcSessionMgr, Connection>
 {

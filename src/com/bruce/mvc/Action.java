@@ -44,6 +44,18 @@ public interface Action
 	/** 预定义 {@link Action} 结果 */
 	String $9			= "$9";
 
+	/** 与 {@link Action} 相关的常量 */
+	public static interface Constant
+	{
+		/** Request Attribute -> {@link Action} 对象 */
+		String REQ_ATTR_ACTION			= "__action";
+		/** Request Attribute -> {@link Exception} 对象 */
+		String REQ_ATTR_EXCEPTION		= "__exception";
+		/** Request Attribute -> HTTP 请求的 BASE URL */
+		String REQ_ATTR_BASE_PATH		= "__base";
+		/** Application Attribute -> Servlet Context 的 ROOT PATH */
+		String APP_ATTR_CONTEXT_PATH	= "__context";
+	}
 	
 	/** {@link Action} 入口方法 */
 	String execute() throws Exception;

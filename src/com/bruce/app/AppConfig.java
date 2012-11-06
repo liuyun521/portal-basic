@@ -40,7 +40,7 @@ public class AppConfig
 	 * @return	  名称 -> 实例
 	 * 
 	 */
-	public static Map<String, SessionMgr> getSessionManagers()
+	public static final Map<String, SessionMgr> getSessionManagers()
 	{
 		return sessionMgrs;
 	}
@@ -53,18 +53,18 @@ public class AppConfig
 	 * @return	  	: {@link SessionMgr} 实例
 	 * 
 	 */
-	public static SessionMgr getSessionManager(String name)
+	public static final SessionMgr getSessionManager(String name)
 	{
 		return sessionMgrs.get(name);
 	}
 
-	static void sendStartupNotice(ServletContext context, ServletContextEvent sce)
+	static final void sendStartupNotice(ServletContext context, ServletContextEvent sce)
 	{
 		if(appListener != null)
 			appListener.onStartup(context, sce);
 	}
 	
-	static void sendShutdownNotice(ServletContext context, ServletContextEvent sce)
+	static final void sendShutdownNotice(ServletContext context, ServletContextEvent sce)
 	{
 		if(appListener != null)
 			appListener.onShutdown(context, sce);
@@ -93,7 +93,7 @@ public class AppConfig
 				if(mgrs.size() == 0)
 					Logger.warn("none of DATABASE SESSION MANAGER found");
 				else
-				{
+				{				
     				for(Element e : mgrs)
     				{
     					String name = e.attributeValue("name");
@@ -116,6 +116,7 @@ public class AppConfig
      					}
     					
        					Logger.info(String.format("register DATABASE SESSION MANAGER '%s (%s)' ...", name, clazz));
+       					
     					SessionMgr mgr = (SessionMgr)(Class.forName(clazz).newInstance());
     					mgr.initialize(params);
     					sessionMgrs.put(name, mgr);	
@@ -159,7 +160,7 @@ public class AppConfig
 	}
 
 	static void unInitialize()
-	{
+	{		
 		// 注销数据库 Session 管理器
 		Set<Map.Entry<String, SessionMgr>> mgrs = sessionMgrs.entrySet();
 		for(Map.Entry<String, SessionMgr> mgr : mgrs)

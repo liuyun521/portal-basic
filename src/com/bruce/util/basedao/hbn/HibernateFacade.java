@@ -421,7 +421,7 @@ public abstract class HibernateFacade extends AbstractFacade<HibernateSessionMgr
 	 * 
 	 * 执行命名查询
 	 * 
-	 * @param qeryName		: 查询名称
+	 * @param queryName		: 查询名称
 	 * @param params		: 查询参数
 	 * @return				: 查询结果
 	 * 

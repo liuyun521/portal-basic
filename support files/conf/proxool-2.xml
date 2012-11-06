@@ -3,11 +3,11 @@
 	the proxool configuration can be embedded within your own
 	application's. Anything outside the "proxool" tag is ignored.
 -->
-<something-else-entirely>
+<proxool-config>
 <proxool>
 	<alias>portal-2</alias>
-
-	<driver-url>jdbc:mysql://localhost:3306/portal?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8</driver-url>
+	
+	<driver-url>jdbc:mysql://localhost:3306/myportal?autoReconnect=true&amp;failOverReadOnly=false&amp;useUnicode=true&amp;characterEncoding=UTF-8</driver-url>
 	<driver-class>com.mysql.jdbc.Driver</driver-class>
 	<driver-properties>
 		<property name="user" value="bruce"/>
@@ -29,4 +29,4 @@
 	<!-- 在使用之前测试 (默认 false) -->
 	<!-- <test-before-use>true</test-before-use> -->
 </proxool>
-</something-else-entirely>
+</proxool-config>

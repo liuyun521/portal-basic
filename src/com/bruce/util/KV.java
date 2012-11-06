@@ -48,7 +48,12 @@ public class KV<K extends Object, V extends Object>
 	{
 		if(obj instanceof KV)
 		{
-			return ((KV<?, ?>)obj).key.equals(key);
+			KV<?, ?> other = (KV<?, ?>)obj;
+			
+			if(key == other.key)
+				return true;
+			if(key != null)
+				return key.equals(other.key);
 		}
 		
 		return false;

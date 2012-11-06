@@ -1,5 +1,7 @@
 package com.bruce.mvc;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -12,14 +14,16 @@ public class ActionExecutor
 {
 	private Queue<ActionFilter> filters;
 	private Action action;
+	private Method method;
 	private ServletContext context;
 	private HttpServletRequest request;
 	private HttpServletResponse response;
 	
 	@SuppressWarnings("unchecked")
-	ActionExecutor(LinkedList<ActionFilter> filters, Action action, ServletContext context, HttpServletRequest request, HttpServletResponse response)
+	ActionExecutor(LinkedList<ActionFilter> filters, Action action, Method method, ServletContext context, HttpServletRequest request, HttpServletResponse response)
 	{
 		this.action		= action;
+		this.method		= method;
 		this.context	= context;
 		this.request	= request;
 		this.response	= response;
@@ -33,7 +37,7 @@ public class ActionExecutor
 	public String invoke() throws Exception
 	{
 		if(filters.isEmpty())
-			return execute(action);
+			return execute(action, method);
 		else
 		{
 			ActionFilter filter = filters.poll();
@@ -41,20 +45,42 @@ public class ActionExecutor
 		}
 	}
 
-	static final String execute(Action action) throws Exception
+	static final String execute(Action action, Method method) throws Exception
 	{
 		boolean valid = true;
 		
 		if(action instanceof Validateable)
 			valid = ((Validateable)action).validate();
 		
-		return valid ? action.execute() : Action.INPUT;
+		if(!valid) return Action.INPUT;
+		
+		try
+		{
+			return (String)method.invoke(action);
+		}
+		catch(InvocationTargetException e)
+		{
+			Exception cause = (Exception)e.getCause();
+			if(cause == null) cause = e;
+			
+			throw cause;
+		}
+		catch(Exception e)
+		{
+			throw e;
+		}
 	}
 	
 	/** 获取当前被拦截的 {@link Action} 对象 */
 	public Action getAction()
 	{
 		return action;
+	}
+	
+	/** 获取被拦截 {@link Action} 的入口方法 */
+	public Method getEntryMethod()
+	{
+		return method;
 	}
 
 	/** 获取 {@link ServletContext} 对象 */

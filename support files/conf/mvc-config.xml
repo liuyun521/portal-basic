@@ -9,35 +9,23 @@
 		<action-suffix>.action</action-suffix>
 		
 		<action-filters>
-			<filter pattern="action.*" class="global.ActionFilter1"/>
-			<filter pattern="action.test.*" class="global.ActionFilter2"/>
-			<filter pattern="action.test.TestI18N" class="global.ActionFilter3"/>
-			<filter pattern="action.test.TestI.*" class="global.ActionFilter3"/>
-			<filter pattern="not.init.+" class="global.ActionFilter4"/>
+			<filter pattern="action.*" class="global.MyActionFilter1"/>
+			<filter pattern="action.test.CheckBean.+" class="global.MyActionFilter2"/>
+			<filter pattern="action.fake.*" class="global.MyActionFilter3"/>
+			<filter pattern="action.test.UserAction" methods="(?!find|execute)\w*" class="global.UserActionFilter"/>
+			<filter pattern=".*" class="com.bruce.ext.dao.DaoInjectFilter"/>
 		</action-filters>
 		
 		<global-results>
-			<result name="none" type="finish"/>
-			<result name="login">jsp/test/db/update_age_fail.jsp</result>
+			<result name="none" />
 		</global-results>
-
-		<global-exception-mappings>
-			<exception-mapping exception="java.lang.RuntimeException" result="exception"/>
-		</global-exception-mappings>
 	</global>
 	
 	<include file="mvc-config-t.xml"/>
 	
 	<actions>
-		<action name="index">
-			<result>jsp/index.jsp</result>
+		<action name="index" class="action.test.IndexAction">
+			<result>/jsp/index.jsp</result>
 		</action>
 	</actions>
-	
-	<actions path="/main">
-		<action name="testi18n" class="action.test.TestI18N">
-			<result>/jsp/test/i18n/set_locale.jsp</result>
-		</action>
-	</actions>
-	<actions></actions>
 </app>

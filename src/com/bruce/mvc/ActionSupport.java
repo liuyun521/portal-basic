@@ -248,16 +248,40 @@ public class ActionSupport implements Action, ActionContextAware, Validateable
 		return HttpHelper.getDateParam(request, name, format);
 	}
 
-	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性或成员变量名完全一致) */
 	public final <T> T createFormBean(Class<T> clazz)
 	{
 		return HttpHelper.createFormBean(request, clazz);
 	}
 
-	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性) */
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性或成员变量) */
 	public final <T> T createFormBean(Class<T> clazz, Map<String, String> keyMap)
 	{
 		return HttpHelper.createFormBean(request, clazz, keyMap);
+	}
+	
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
+	public final <T> T createFormBeanByProperties(Class<T> clazz)
+	{
+		return HttpHelper.createFormBeanByProperties(request, clazz);
+	}
+
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性) */
+	public final <T> T createFormBeanByProperties(Class<T> clazz, Map<String, String> keyMap)
+	{
+		return HttpHelper.createFormBeanByProperties(request, clazz, keyMap);
+	}
+	
+	/** 使用表单元素创建 Form Bean (表单元素的名称和 Form Bean 成员变量名完全一致) */
+	public final <T> T createFormBeanByFieldValues(Class<T> clazz)
+	{
+		return HttpHelper.createFormBeanByFieldValues(request, clazz);
+	}
+
+	/** 使用表单元素创建 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 成员变量) */
+	public final <T> T createFormBeanByFieldValues(Class<T> clazz, Map<String, String> keyMap)
+	{
+		return HttpHelper.createFormBeanByFieldValues(request, clazz, keyMap);
 	}
 	
 	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 属性名完全一致) */
@@ -272,6 +296,30 @@ public class ActionSupport implements Action, ActionContextAware, Validateable
         HttpHelper.fillFormBeanProperties(request, bean, keyMap);
 	}
 	
+	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 成员变量名完全一致) */
+	public final <T> void fillFormBeanFieldValues(T bean)
+	{
+		HttpHelper.fillFormBeanFieldValues(request, bean);
+	}
+	
+	/** 使用表单元素填充 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 成员变量) */
+	public final <T> void fillFormBeanFieldValues(T bean, Map<String, String> keyMap)
+	{
+        HttpHelper.fillFormBeanFieldValues(request, bean, keyMap);
+	}
+
+	/** 使用表单元素填充 Form Bean (表单元素的名称和 Form Bean 属性或成员变量名完全一致) */
+	public final <T> void fillFormBeanPropertiesOrFieldValues(T bean)
+	{
+		HttpHelper.fillFormBeanPropertiesOrFieldValues(request, bean);
+	}
+	
+	/** 使用表单元素填充 Form Bean (用 keyMap 映射与表单元素名称不对应的 Form Bean 属性或成员变量) */
+	public final <T> void fillFormBeanPropertiesOrFieldValues(T bean, Map<String, String> keyMap)
+	{
+		HttpHelper.fillFormBeanPropertiesOrFieldValues(request, bean, keyMap);
+	}
+
 	/** 获取所有 {@link Cookie} */
 	public final Cookie[] getCookies()
 	{
@@ -320,7 +368,7 @@ public class ActionSupport implements Action, ActionContextAware, Validateable
 		setSessionAttribute(Message.SESSION_LOCALE_KEY, locale);
 	}
 	
-	/** 获取 request path 在文件系统的绝对路径,
+	/** 获取 URL 地址在文件系统的绝对路径,
 	 * 
 	 * Servlet 2.4 以上通过 request.getServletContext().getRealPath() 获取,
 	 * Servlet 2.4 以下通过 request.getRealPath() 获取。
@@ -330,7 +378,19 @@ public class ActionSupport implements Action, ActionContextAware, Validateable
 	{
 		return HttpHelper.getRequestRealPath(request, path);
 	}
+	
+	/** 获取 URL 的  BASE 路径 */
+	public final String getRequestBasePath()
+	{
+		return HttpHelper.getRequestBasePath(request);
+	}
 
+	/** 禁止浏览器缓存当前页面 */
+	public final void setNoCacheHeader()
+	{
+		HttpHelper.setNoCacheHeader(response);
+	}
+	
 	/** 获取 {@link ServletContext} */
 	public final ServletContext getServletContext()
 	{
