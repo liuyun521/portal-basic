@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.bruce.util.GeneralHelper;
 import com.opensymphony.oscache.base.Cache;
 import com.opensymphony.oscache.base.CacheEntry;
 import com.opensymphony.oscache.base.EntryRefreshPolicy;
@@ -48,7 +49,7 @@ public class OSCacheWrapper
 			Set<String> groups = new HashSet<String>();
 			for(String group : defaultGroups)
 			{
-				if(group != null && !group.isEmpty())
+				if(GeneralHelper.isStrNotEmpty(group))
 					groups.add(group);
 			}
 			
