@@ -48,7 +48,7 @@ public class GeneralHelper
 	/** 检查字符串不为 null 或空字符串 */
 	public final static boolean isStrNotEmpty(String str)
 	{
-		return str != null && !str.equals("");
+		return str != null && str.length() != 0;
 	}
 
 	/** 检查字符串不为 null 、空字符串或只包含空格 */
