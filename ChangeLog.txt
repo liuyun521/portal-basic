@@ -2,6 +2,59 @@
 										××××××××××××××××××××××××××××××××××××
 													修改记录
 										××××××××××××××××××××××××××××××××××××
+   
+
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+版本: 3.0.1    时间: 2012-12-20    人员：梁东成
+
+1、增加 Action Convention，支持“Action 零配置”：
+	1) 根据 Action 请求的地址信息自动加载 Action，并调用相应的入口方法处理请求
+	2) 根据 Action 请求的地址信息和 Action Result 自动组合出输出页面的地址并转发
+	3) 通过 @Result/@Results 和 @ExceptionMapping/@ExceptionMappings 注解自定义 Result 和 Exception 处理策略
+	4) Action Convention 相关查找规则：
+		A、【Action Entry】
+			-> Action Entry 配置
+				-> Action Convention（自动匹配）
+		B、【Action Result】
+			-> Action Entry 的 Result 配置
+				-> Action 的 Result 配置
+					-> Action 入口方法的 @Result/@Results 注解
+						-> Action 类的 @Result/@Results 注解
+							-> 全局 Result 配置
+								-> Action Convention（自动匹配）
+		C、【Exception Mapping】
+			-> Action Entry 的 Exception-Mapping 配置
+				-> Action 的 Exception-Mapping 配置
+					-> Action 入口方法的 @ExceptionMapping/@ExceptionMappings 注解
+						-> Action 类的 @ExceptionMapping/@ExceptionMappings 注解
+							-> 全局 Exception-Mapping 配置
+	
+2、增加 REST 支持：
+	1) 增加 REST 插件包 portal-basic-ext-rest-3.0.1.jar 用于支持 REST
+	2) portal-basic-ext 通过 com.bruce.ext.rest.RestDispatcher 过滤器把 REST 请求转换为 Action 请求
+	3) portal-basic-ext 提供 com.bruce.ext.rest.RestActionSupport 作为处理 REST 请求的 Action 基类
+	4) Action 的 REST 请求处理方法通过声明 @Get/@Post/@Put/@Delete 注解来匹配 REST 地址格式，并注入参数
+	5) 内置 Rails-style REST 标准方法
+	6) 同时支持 HTML/XML/JSON 三种视图格式，应用程序也可以扩展自己的视图格式
+	7) portal-basic-ext 与 Action Convention 结合使用能实现“零配置”处理 REST 请求
+		
+3、其它更新：
+	1) Action Filter
+		A、应用程序启动时会加载所有 Action Filter
+		B、Action Filter 不重复拦截：如果多个匹配的 Action Filter 配置使用同一个拦截器对象，该拦截器对象的拦截方法只会调用一次
+	2) 取消“默认 Action”：由于“默认 Action”容易导致应用程序跟踪困难等问题，其副作用大于正作用，因此不再支持“默认 Action”
+		（当 ‘/a/b/c/MyAction’ 不出存在时，不再尝试查找默认包中的 ‘/MyAction’）
+	3) 包结构更新：原 com.bruce.util.basedao 包改为 com.bruce.dao
+	4) 修改配置文件的跟元素名称: 
+		应用程序配置文件 -> APP			(参考：app-config.xsd)
+		MVC 主配置文件 -> MVC-MAIN		(参考：mvc-config-main.xsd)
+		MVC 从配置文件 -> MVC-INCLUDE	(参考：mvc-config-include.xsd)
+		REST 配置文件 -> REST			(参考：rest-config.xsd)
+	
+4、应用程序升级说明：Portal-Basic-3.x 在功能与配置方面完全兼容 Portal-Basic-2.x，但有两处地方需要调整
+	1) 由于原 com.bruce.util.basedao 包改为 com.bruce.dao，因此需要修改应用程序代码中对这些类的依赖路径并重新编译；
+		另外，还要修改 app-config.xml 的 '<database-session-managers>' 中的 SessionMgr 类路径
+	2) 检查应用程序是否使用了“默认 Action”功能，如果使用了该功能则需要进行调整
 
 －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
 版本: 2.6.2    时间: 2012-11-20    人员：梁东成
@@ -37,463 +90,5 @@
 	2) 为 DAO 类添加 @Transaction 注解，与 FacadeProxy.create(...) 系列方法配合使用
 	3) FacadeProxy.create(...) 系列方法支持在 Action 中自动注入 DAO 对象（利用  @DaoBean/@DaoBeans 注解） 
 	4) 优化 DAO 框架的缓存机制，提升框架性能
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.5.4    时间: 2012-09-03    人员：梁东成
-
-1、修改 HttpHelper 和 ActionSupport 的 getParam()方法，获取请求参数值时对其执行 Trim 操作，去除其前后空格
-2、修改 HttpHelper 和 ActionSupport，增加方法： getParamNoTrim()，获取请求参数但不去除请求参数值的前后空格
-3、示例工程 MyPortal 增加页面静态化示例
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.5.3    时间: 2012-08-23    人员：梁东成
-
-1、修改 com.bruce.util.http.HttpHelper 的 getParamValues()方法，修复请求参数不存在时会抛出‘空指针异常’的 Bug
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.5.2    时间: 2012-08-09    人员：梁东成
-
-1、修改 com.bruce.util.basedao.FacadeProxy，修复 CGLib 动态创建 DAO 代理时引发的 ‘PermGen Space’ 内存溢出错误
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.5.1    时间: 2012-07-18    人员：梁东成
-
-1、com.bruce.util.ObjectCache 改名为 OSCacheWrapper
-2、增加 com.bruce.util.EHCacheWrapper，简化 EH Cache 缓存操作
-3、修改 com.bruce.http.FileDownloader，支持字节数组和字节流下载源
-4、其他代码局部调整
-5、更新若干依赖 jar 包
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.9    时间: 2012-06-21    人员：梁东成
-
-1、修改 com.bruce.mvc.ActionDispatcher，请求跳转到非法的 URL 地址时，提示 404 错误而不抛出异常
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.8    时间: 2012-06-11    人员：梁东成
-
-1、修改 com.bruce.util.http.FileUploader，修复在 Linux 环境下 getUploadFileSimpleName() 方法可能返回不正确结果的 Bug
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.7    时间: 2012-05-17    人员：梁东成
-
-1、修改 com.bruce.util.http.FileUploader，允许上传空文件
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.6    时间: 2012-04-01    人员：梁东成
-
-1、为 com.bruce.util.basedao.FacadeProxy 创建的 DAO 代理对象增加自定义事务隔离级别支持，
-    默认情况下 getManualCommitProxy() 使用系统底层的默认事务隔离级别启动事务，如果有特殊需要
-    可以为 getManualCommitProxy() 指定 TransIsoLevel 参数，显式设置它所创建的 DAO 代理
-    对象的事务隔离级别。
-2、DAO 框架代码深度优化和 Bug Fix
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.5    时间: 2012-03-23    人员：梁东成
-
-1、修改 com.bruce.util.http.FileDownloader, 解决应用程序部署到非 Windows 操作系统时，
-    文件下载提示框的中文文件名乱码问题
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.4    时间: 2012-03-20    人员：梁东成
-
-1、com.bruce.util.http.FileUploader.FileItem 增加方法：getUploadFileSimpleName()
-	对于不同的客户端浏览器 getUploadFileName() 方法返回的文件名可能包含也可能不包含文
-	件路径，因此增加 getUploadFileSimpleName() 方法，确保返回的文件名不包含文件路径。
-2、com.bruce.mvc.ActionSupport 增加 removeXxxAttribute()、invalidateSession() 等方法。
-3、其他代码优化
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.3    时间: 2012-03-19    人员：梁东成
-
-1、修复 Bug: “Result Name 为 ‘none’时，默认 Result Type 仍有为‘dispatch’”，实际应该为‘finish’
-2、com.bruce.util.Logger 增加多个日志输出方法，支持记录可变参数格式化日志
-3、com.bruce.util.BeanHelper 增加基础类型数组与包装类数组转换功能
-4、优化 DAO 框架的 SessionMgr 代码
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.2    时间: 2012-03-16    人员：梁东成
-
-1、修复 2.4.1 版本引入的 Session 失效 Bug
-2、MVC 主配置文件 mvc-config.xml 的 "<action-stuff/>" 改为 "<action-suffix/>", 并相应修改其 XSD 定义
-3、Form Bean 装配功能增加自动装配 java.lang.Collection 类型属性支持, 包括各种 List 和 Set
-	a) List 和 Set 属性必须声明泛型参数类型（如: List<Integer>、HashSet<Date>）, 否则不会执行自动装配
-	b) 泛型参数的类型支持 8 种基础类型包装类、String 和 Date
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.4.1    时间: 2012-03-11    人员：梁东成
-
-1、<p:msg/> 国际化标签修改:
-	a) 实现方式从 File Tag 改为 Simple Tag, 标签的实现类为: com.bruce.tag.Message
-	b) 增加 params 属性, 接受包括数组、集合等所有类型参数, 通过该属性同时性设置所有参数
-	c) 默认国际化资源文件从 res.default-jsp-resource 改为 res.message-resource
-2、Action 跳转到 JSP 或 Action 链的下一个 Action 时, 隐含带上 '__action' 请求属性, JSP 中可以通过 ${__action} 获取当前 Action
-3、增加接口 com.bruce.mvc.ActionContextAware (ActionSupport 实现该接口)
-4、增加接口 com.bruce.mvc.Validateable (ActionSupport 实现该接口), 用户 Action 可以改写接口的 validate() 方法，
-  在执行 execute() 方法前进行服务端验证, 如果验证不通过则不会执行 execute() 方法, 同时立刻返回执行结果: "Action.INPUT"
-5、增加 Form Bean 自动装配功能，通过在 Action 中声明 @FormBean 或 @FormBean("<属性名称>") 注解，对 Action 或 Action 的某个
-  属性执行 Form 表单域自动装配，相应修改：
-	a) 增加注解类: com.bruce.mvc.FormBean
-	b) 增加注解解析类: com.bruce.mvc.FormBeanParser
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.3.3    时间: 2012-03-05    人员：梁东成
-
-1、修改 AppListener、ActionDispatcher、HibernateSessionMgr、ProxoolSessionMgr 和 MyBatisSessionMgr,
-       使项目能通过对 web.xml 和 app-config.xml 的配置把所有配置文件放到不同的文件夹中
-2、Bug Fix: 修改 HibernateSessionMgr 和 MyBatisSessionMgr, 把 confFile 属性设置为 非 static
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.3.2    时间: 2012-03-05    人员：梁东成
-
-1、修正 FileUploader 在不限制文件类型的情况下上传文件会报告 NullPointerException 的 Bug
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.3.1    时间: 2012-02-29    人员：梁东成
-
-1、修改 app-confg mvc-config-main mvc-config-include 三个 xsd 文件，加强输入检查
-2、修改 portal-basic.tld, 'short-name' 改为 'p', 'tlib-version' 修改为 2.3
-
-3、 Result Name 为 'none' 默认 Result Type 改为: 'finish' (其他 Result Name 的默认 Result Type 依然为 'dispatch')
-
-			以下两行配置效果一样:
-			/***********************************************/
-					<result name="none" />
-					<result name="none" type="finish" />
-			/***********************************************/
-
-4、增加 Action 的 exception-mapping 支持: Action 或 Action 拦截器中抛出异常时, 
-       如果配置了相应的 exception-mapping 则定向到配置文件的指定页面.
-	a) Action 增加名称为 'exception' 的 Result Name
-	b) Action / ActionSupport 的 execute() 方法增加 'throws Exception' 声明
-	c) ActionFilter / AbstractActionFilter 的 doFilter() 方法增加 'throws Exception' 声明
-	d) ActionExecutor 的 invoke() 方法增加 'throws Exception' 声明
-	e) exception-mapping 的默认 exception 为 'java.lang.Exception', 默认 result 为 'exception'
-
-			以下两行配置效果一样:
-			/***********************************************/
-				<exception-mapping />
-				<exception-mapping exception="java.lang.Exception" result="exception"/>
-			/***********************************************/
-
-	f) Action 局部 exception-mapping 配置:
-
-			/***********************************************/
-			<action name="..." class="...">
-				<result name="success">ok.jsp<result/>
-				<result name="exception">error.jsp</result>
-				
-				<!-- exception-mapping 的默认 result 为 'exception' -->
-				<!-- 跳转到 error.jsp -->
-				<exception-mapping exception="java.lang.IllegalArgumentException"/>
-				
-				<!-- 跳转到 ok.jsp -->
-				<exception-mapping exception="java.io.FileNotFoundException" result="success"/>
-
-				<!-- exception-mapping 的默认 exception 为 'java.lang.Exception' -->
-				<!-- 其他任何异常均跳转到 error.jsp -->
-				<exception-mapping />
-			</action>
-			/***********************************************/
-	
-	g) 全局 exception-mapping 配置:
-
-			/***********************************************/
-			<global>
-			
-				<global-results>
-					<result name="none" type="finish"/>
-					<result name="$9">my_page.jsp</result>
-					<result name="exception">global_error.jsp</result>
-				</global-results>
-		
-				<global-exception-mappings>
-					<!-- exception-mapping 的默认 result 为 'exception' -->
-					<!-- 跳转到 error.jsp -->
-					<exception-mapping exception="java.io.IOException"/>
-					
-					<!-- 跳转到 ok.jsp -->
-					<exception-mapping exception="java.io.EOFException" result="success"/>
-					
-					<!-- 跳转到 my_page.jsp -->
-					<exception-mapping exception="java.lang.RuntimeException" result="$9"/>
-					
-					<!-- exception-mapping 的默认 exception 为 'java.lang.Exception' -->
-					<!-- 其他任何异常均跳转到 error.jsp -->
-					<exception-mapping />
-				</global-exception-mappings>
-			</global>
-			/***********************************************/
-			
-	h) exception-mapping 规则:
-		♠ 先检查 Action 局部配置, 如果找不到匹配项再检查全局配置
-		♠ 按顺序续行查找匹配, 如果找到匹配行则停止查找
-		♠ exception 匹配指定的类及其子类, 因此应该把继承层次较高的异常类配置在后面
-		♠ 即使是全局配置项中找到的 exception-mapping 配置条目, 其 result 也会从 Action 的局部 result 开始查找
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.8    时间: 2012-02-23    人员：梁东成
-
-1、增加类 com.bruce.util.cache.MemCachedPool , 支持 MemCached
-2、com.bruce.util.http.DownloadFile 的 downLoad() 方法改为 download()
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.7    时间: 2012-02-16    人员：梁东成
-
-1、代码微小调整
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.6    时间: 2011-11-07    人员：梁东成
-
-1、增加基于 ANT（ant.jar）的压缩、解压帮助类：com.bruce.util.archive.* :
-	1) Zipper		: ZIP 压缩执行器
-	2) UnZipper		: ZIP 解压执行器
-	3) Tarrer		: TAR 归档执行器
-	4) UnTarrer		: TAR 解档执行器
-	5) GZipper		: GZIP 压缩执行器
-	6) UnGZipper	: GZIP 解压执行器
-	7) BZipper		: BZIP2 压缩执行器
-	8) UnBZipper	: BZIP2 解压执行器
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.5    时间: 2011-10-31    人员：梁东成
-
-1、增加编解码、加解密帮助类：com.bruce.util.CryptHelper，支持:
-	1) byte 数组与 16 进制字符串转换
-	2) URL 编解码
-	3) Base 64 编解码
-	4) MD5 加密
-	5) SHA 加密
-	6) AES 加解密
-	7) DES 加解密
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.4    时间: 2011-10-25    人员：梁东成
-
-1、 com.bruce.util.http.FileDownloader 增加断点续传下载支持
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.3    时间: 2011-10-18    人员：梁东成
-
-1、把 com.bruce.util.http.ConnectionHelper 改名为 HttpHelper，并增加多个 HTTP 操作相关的帮助方法
-2、在 com.bruce.app.AppListener 的初始化方法中初始化 com.bruce.util.http.HttpHelper 的 servletContext 属性
-3、重构以下几个类：
-	1) com.bruce.util.http.FileUploader
-	2) com.bruce.util.http.FileDownloader
-	3) com.bruce.mvc.ActionSupport
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.2    时间: 2011-09-23    人员：梁东成
-
-1、修改 Action Result 的处理方式：
-	1) 增加一种 result type：<result type="finish" />，取代  <result name="none" /> 专门用于 Action 处理后不跳转的情形。
-	2) <result name="none" /> 不再具备特殊意义，在框架中看作普通的 Result Name。
-	3) 修改 mvc-config-main.xsd 和 mvc-config-include.xsd，支持上述第 2 点的配置
-	
-		*!! 为应对框架的上述修改，现有系统的 mvc 配置文件也须作相应修改 !!*
-		
-		修改方法：
-			a) 删除原系统配置的所有名称为 "none" 的 Action Result
-			b) 在 Global Result 中增加如下配置:
-			
-			  /***********************************************/
-			  	<global>
-			  		<global-results>
-			  			<!-- 对于  name="none" 的 action result，默认处理方式为不跳转 -->
-						<result name="none" type="finish"/>
-					</global-results>
-				</global>
-			  /***********************************************/
-	
-2、新增 com.bruce.util.http.FileDownloader 类，封装文件下载功能
-	* 参考示例：1) 测试工程: action.test.TestDownload
-3、新增 com.bruce.util.http.FileUploader 类，封装文件上传功能
-	* 参考示例：1) 测试工程: action.test.CheckUpload
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.2.1    时间: 2011-09-18    人员：梁东成
-
-1、com.bruce.util.GeneralHelper 类增加多个 str2XXX() 方法，支持 String 到其他数据类型的转换
-2、新增 com.bruce.util.BeanHelper 类，支持 Java Bean 对象的动态生成和动态设置 / 获取属性操作
-	* 参考示例：	1) 测试工程：action.test.CheckBean
-				2) 测试工程：test.TestBeanHelper
-3、com.bruce.util.ActionSupport 类增加 4 个方法：
-	1) 2 个 createFormBean() 方法，从提交的表单直接生成 Form Bean 实例
-	2) 2 个 fillFormBeanProperties() 方法，从提交的表单填充 Form Bean 的属性
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.11    时间: 2011-09-16    人员：梁东成
-
-1、优化 Action Filter
-	1) 优化 Action Filter 的调度方式（使用方法和对外接口不变）
-	2) 只实例化有可能被用到的 Action Filter，如果配置的 Action Filter 不可能被用到则不会创建它的实例
-	
-	* 参考示例：1) 测试工程: golbal.ActionFilter1 / ActionFilter2 /ActionFilter3 /ActionFilter4
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.10    时间: 2011-09-13    人员：梁东成
-
-1、修改 Action 过滤器 com.bruce.mvc.ActionFilter 的初始化和销毁处理方式：
-	1) 如果多个过滤器的 'class' 配置属性一样则它们共享同一个 ActionFilter 实例
-	2) ActionFilter 的 init() 方法在应用程序启动时调用，destroy() 方法在应用程序结束时调用
-	3) 每个 ActionFilter 的 init() / destroy() 方法只调用一次
-2、修改 MVC 配置文件中 <actions /> 元素的配置方式：
-	1) 单个 MVC 配置文件可配置多个 <actions /> 元素
-	2) <actions /> 元素增加 'path' 属性，用于对 Action 进行分组（分包），不同包的 Action 名称可以相同，实际访问
-	   Action 时使用 Action 的全名（包名 + Action 名），如：
-	   	a) 访问默认包的 action1		：http://${my server}/${my app path}/action1.action
-	   	b) 访问 my_pkg1 包的 action1	：http://${my server}/${my app path}/my_pkg1/action1.action
-	   	c) 访问 a.b.c 包的 action1	：http://${my server}/${my app path}/a/b/c/action1.action
-	   	d) 如果在指定的包中找不到 Action 则会在默认包中继续查找，如上述 c) 例子中，如果 a.b.c 包下 没有 action1，但
-	   	   默认包下有，则会调用默认包下的 action1
-	   	e) 对于 result name 为 'chain' 的 Action Result，如果没有指定要转向的 Action 的包名，则转向默认包的 Action，如：
-	   	
-		   	/***********************************************/
-				<actions path="/mypkg">
-					<action name="..." class="...">
-						<!-- 转向: /action1 -->
-						<result name="..." type="chain">action1</result>
-						<!-- 转向: /mypkg/action1 -->
-						<result name="..." type="chain">./action1</result>
-						<!-- 转向: /a/b/c/action1 -->
-						<result name="..." type="chain">/a/b/c/action1</result>
-					</action>
-				</actions>
-		   	/***********************************************/
-		   	
-3、修改 mvc-config-main.xsd 和 mvc-config-include.xsd，支持上述第 2 点的配置
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.9    时间: 2011-09-09    人员：梁东成
-
-1、增加分页类：com.bruce.util.PageSplitter 和 com.bruce.util.Pagination
-	1) PageSplitter: 根据总记录数和分页大小处理分页
-	2) Pagination: 根据总记录数和分页大小对 List 进行分页处理
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.8    时间: 2011-09-09    人员：梁东成
-
-1、修改 Action 前端控制器的类名，从原来的 'FrontController' 改为 'ActionDispatcher'。因此 web.xml 文件也要作相应修改。
-
-  配置示例：(web.xml)
-
-	/***********************************************/
-	<!-- 前端控制器 -->
-	<filter>
-		<filter-name>ActionDispatcher</filter-name>
-		<filter-class>com.bruce.mvc.ActionDispatcher</filter-class>
-	</filter>
-	<filter-mapping>
-		<filter-name>ActionDispatcher</filter-name>
-		<url-pattern>*.action</url-pattern>
-		<dispatcher>REQUEST</dispatcher>
-		<dispatcher>FORWARD</dispatcher>
-		<dispatcher>INCLUDE</dispatcher>
-		<dispatcher>ERROR</dispatcher>
-	</filter-mapping>
-	/***********************************************/
-	
-2、支持在 mvc-config.xml 中配置全局 Action Result，如果多个 Action 需定向到相同的页面，可以将其 <result> 配置为全局，
-  避免大量重复配置。另外，需要更新 mvc-config-main.xsd 文件，支持全局 result 验证。
-  
-  配置示例：(mvc-config.xml)
-  
-  /***********************************************/
-  	<global>
-  		<!-- 全局 result -->
-  		<global-results>
-			<result />
-			<result name="login">jsp/login.jsp</result>
-		</global-results>
-	</global>
-  /***********************************************/
-  
-3、支持 Action 过滤器，过滤器用于对 Action 的 execute() 方法进行前置或后置处理。如：拦截未登录用户对受保护页面的请求，或
-  Action 执行前后进行加工处理等。另外，需要更新 mvc-config-main.xsd 文件，支持 Action 过滤器配置的验证。
-  
-  使用方法：
-  	1) 通过实现 com.bruce.mvc.ActionFilter 接口或继承 com.bruce.mvc.AbstractActionFilter 类生成过滤器
-  	2) 在 mvc-config.xml 中配置 Action 过滤器
-  	
-  配置示例：(mvc-config.xml)
-  
-  /***********************************************/
-  	<global>
-  		<!-- Action 过滤器 -->
-		<action-filters>
-			<!-- 'class': 过滤器类名 -->
-			<!-- 'pattern': 过滤器的匹配规则，对全类名符合匹配规则的 Action 执行过滤 -->
-			<filter pattern=".+" class="global.ActionFilter1"/>
-			<filter pattern="action.+" class="global.ActionFilter2"/>
-			<filter pattern="action.admin.*" class="global.ActionFilter3"/>
-		</action-filters>
-	</global>
-  /***********************************************/
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.7    时间: 2011-09-07    人员：梁东成
-
-1、增加 Action 结果常量: $0 - $9
-	1) com.bruce.mvc.Action 增加常量 常量: $0 - $9
-	2) mvc-config-include.xsd 和 mvc-config-main.xd 增加常量 常量: $0 - $9
-2、com.bruce.util.basedao.hbn.HibernateFacade 增加 flush() / clear() / evict() 等帮助方法
-3、com.bruce.util.basedao.jdbc.JdbcFacade 增加两个 updateBatch() 方法 
-4、com.bruce.util.basedao.mybatis 包增加批量更新支持
-	1) MyBatisSessionMgr 增加 changeSessionExecutorType() 方法，支持切换 Sesison 的 ExecutorType
-	2) MyBatisFacade 增加 changeSessionExecutorTypeTo***() 方法，支持切换 Sesison 的 ExecutorType
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.6    时间: 2011-08-30    人员：梁东成
-
-1、修复 Bug: "多线程共享 DAO 对象时可能引发数据连接 Session 过早关闭"
-2、com.bruce.util.basedao.SessionMgr 接口增加 currentSession() 方法
-3、增加类：com.bruce.util.basedao.AbstractSessionMgr, 存放 所有 SessionMgr 类的公共属性
-4、优化 com.bruce.util.basedao.FacadeProxy.Interceptor 类的 intercept() 方法的异常处理
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.5    时间: 2011-08-23    人员：梁东成
-
-1、添 MyBatis 支持
-	1) 添加包: com.bruce.util.basedao.mybatis
-	2) 添加类: MyBatisFacade
-	3) 添加类: MyBatisSessionMgr
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.4    时间: 2011-08-16    人员：梁东成
-
-1、添加 JDBC 支持
-	1) 添加包: com.bruce.util.basedao.jdbc
-	2) 添加类: AbstractJdbcSessionMgr
-	3) 添加类: JdbcException
-	4) 添加类: JdbcFacade
-	5) 添加类: JdbcUtil
-	6) 添加类: ProxoolSessionMgr
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.3    时间: 2011-08-11    人员：梁东成
-
-1、优化 com.bruce.util.basedao.FacadeProxy
-	a) 修改 com.bruce.util.basedao.FacadeProxy.InterceptFilter 的过滤算法
-	b) 把获取 DAO 代理的方法名命名为: getAutoCommitProxy() 和 getManualCommitProxy()
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.2    时间: 2011-08-09    人员：梁东成
-
-1、重新设计 com.bruce.util.basedao.hbn 数据库访问包
-2、调整 HibernateFacade 类以适应新框架
-3、建立 Session 管理器: HibernateSessionMgr 
-
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.1    时间: 2011-08-06    人员：梁东成
-
-1、根据新的数据库访问框架创建 com.bruce.util.basedao 包中的基础类
-	a) SessionMgr
-	b) AbstractFacade
-	c) FacadeProxy
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
-版本: 2.1.0    时间: 2011-08-03    人员：梁东成
-
-1、重新规划 portal-basic 框架
-2、重构包、文件夹和类
 
 －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－

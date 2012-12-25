@@ -8,7 +8,7 @@
 	http://www.springframework.org/schema/aop
 	http://www.springframework.org/schema/aop/spring-aop.xsd ">
 
-	<bean id="userDao" class="com.bruce.util.basedao.FacadeProxy" factory-method="create">
+	<bean id="userDao" class="com.bruce.dao.FacadeProxy" factory-method="create">
 		<constructor-arg value="dao.mybatis.UserDao"/>
 	</bean>
 	

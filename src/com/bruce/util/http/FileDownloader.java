@@ -1,3 +1,24 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util.http;
 
 import java.io.BufferedInputStream;
@@ -26,7 +47,7 @@ public class FileDownloader
 	public static final String DEFAULT_CONTENT_TYPE		= "application/force-download";
 	
 	private static final String WINDOWS_AGENT_CHARSET	= "GBK";
-	private static final String OTHER_AGENT_CHARSET		= "UTF-8";
+	private static final String DEFAULT_AGENT_CHARSET	= GeneralHelper.DEFAULT_ENCODING;
 	
 	private String saveFileName;
 	private String contentType		= DEFAULT_CONTENT_TYPE;
@@ -340,7 +361,7 @@ public class FileDownloader
 	private Range<Integer> prepareDownload(HttpServletRequest request, HttpServletResponse response, int length) throws UnsupportedEncodingException
 	{
 		String charset			= HttpHelper.isRequestNotComeFromWidnows(request)	?
-									OTHER_AGENT_CHARSET : WINDOWS_AGENT_CHARSET		;
+									DEFAULT_AGENT_CHARSET : WINDOWS_AGENT_CHARSET		;
 		String fileName			= new String(saveFileName.getBytes(charset), "ISO-8859-1");
 		Range<Integer> range	= parseDownloadRange(request);
 		int begin				= 0;

@@ -108,6 +108,32 @@
 	</filter-mapping>
 	-->
 
+	<!-- REST 请求过滤器 -->
+	<filter>
+		<filter-name>RestDispatcher</filter-name>
+		<filter-class>com.bruce.ext.rest.RestDispatcher</filter-class>
+		
+		<!-- REST 配置文件（可选，默认：rest-config.xml） -->
+		<!-- 
+		<init-param>
+			<param-name>rest-config-file</param-name>
+			<param-value>rest-config.xml</param-value>
+		</init-param>
+		-->
+	</filter>
+	<filter-mapping>
+		<filter-name>RestDispatcher</filter-name>
+		<!-- 一般设置为：REST 配置文件的 ${rest-base-path}/* -->
+		<url-pattern>/*</url-pattern>
+		<!-- 通常只需处理 REQUEST 请求 -->
+		<dispatcher>REQUEST</dispatcher>
+		<!-- 
+		<dispatcher>FORWARD</dispatcher>
+		<dispatcher>INCLUDE</dispatcher>
+		<dispatcher>ERROR</dispatcher>
+		-->
+	</filter-mapping>
+
 	<!-- MVC 前端控制器 -->
 	<filter>
 		<filter-name>ActionDispatcher</filter-name>
@@ -201,8 +227,8 @@
 	</servlet-mapping>
 	
 	<welcome-file-list>
-		<welcome-file>index.html</welcome-file>
 		<welcome-file>index.htm</welcome-file>
+		<welcome-file>index.html</welcome-file>
 		<welcome-file>index.jsp</welcome-file>
 		<welcome-file>index.ftl</welcome-file>
 		<welcome-file>index.action</welcome-file>

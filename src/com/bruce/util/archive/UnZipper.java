@@ -1,3 +1,24 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util.archive;
 
 import org.apache.tools.ant.taskdefs.Expand;
@@ -8,7 +29,7 @@ import com.bruce.util.GeneralHelper;
 public class UnZipper extends UnArchiver
 {
 	/** 默认文件名编码 */
-	public static final String DEFAULT_ENCODING = GeneralHelper.IS_WINDOWS_PLATFORM ? "GBK" : "UTF-8";
+	public static final String DEFAULT_ENCODING = GeneralHelper.IS_WINDOWS_PLATFORM ? "GBK" : GeneralHelper.DEFAULT_ENCODING;
 
 	private String encoding = DEFAULT_ENCODING;
 

@@ -1,3 +1,24 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.ext.dao;
 
 import java.beans.PropertyDescriptor;
@@ -14,43 +35,57 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.bruce.app.AppConfig;
+import com.bruce.dao.AbstractFacade;
+import com.bruce.dao.FacadeProxy;
+import com.bruce.dao.SessionMgr;
 import com.bruce.mvc.AbstractActionFilter;
 import com.bruce.mvc.Action;
 import com.bruce.mvc.ActionExecutor;
 import com.bruce.mvc.ActionFilter;
 import com.bruce.mvc.ActionSupport;
 import com.bruce.util.BeanHelper;
+import com.bruce.util.CoupleKey;
 import com.bruce.util.GeneralHelper;
-import com.bruce.util.basedao.AbstractFacade;
-import com.bruce.util.basedao.FacadeProxy;
-import com.bruce.util.basedao.SessionMgr;
 
 /** 解析 {@link DaoBean} 和 {@link DaoBeans} 的 {@link ActionFilter} */
 public class DaoInjectFilter extends AbstractActionFilter
 {
-	private Map<Method, DaoAttr[]> daoMap = new HashMap<Method, DaoAttr[]>();
+	private Map<CoupleKey<Class<?>, Method>, DaoAttr[]> daoMap = new HashMap<CoupleKey<Class<?>, Method>, DaoAttr[]>();
+	
+	@Override
+	public void init()
+	{
+	}
+	
+	@Override
+	public void destroy()
+	{
+		daoMap = null;
+	}
 	
 	@Override
 	public String doFilter(ActionExecutor executor) throws Exception
 	{
 		Action action = executor.getAction();
 		Method method = executor.getEntryMethod();
+		
+		CoupleKey<Class<?>, Method> key = new CoupleKey<Class<?>, Method>(action.getClass(), method);
 
-		checkDaoMap(executor, action, method);	
-		tryInject(action, method);
+		checkDaoMap(executor, action, key);	
+		tryInject(action, key);
 
 		return executor.invoke();
 	}
 
-	private void checkDaoMap(ActionExecutor executor, Action action, Method method) throws Exception
+	private void checkDaoMap(ActionExecutor executor, Action action, CoupleKey<Class<?>, Method> key) throws Exception
 	{
-		if(!daoMap.containsKey(method))
+		if(!daoMap.containsKey(key))
 		{
 			List<DaoAttr> daoAttrList		= new ArrayList<DaoAttr>();
-			Map<String, DaoBean> daoBeanMap = parseDaoBeans(executor, action, method);
+			Map<String, DaoBean> daoBeanMap = parseDaoBeans(executor, action, key);
 			
 			parseDaoAttrs(executor, action, daoAttrList, daoBeanMap);
-			tryPutDaoMap(method, daoAttrList);
+			tryPutDaoMap(key, daoAttrList);
 		}
 	}
 
@@ -62,9 +97,9 @@ public class DaoInjectFilter extends AbstractActionFilter
 			parseDaoAttr(executor, action, entry, daoAttrList);
 	}
 
-	private void tryInject(Action action, Method method)
+	private void tryInject(Action action, CoupleKey<Class<?>, Method> key)
 	{
-		DaoAttr[] daoAttrs = daoMap.get(method);
+		DaoAttr[] daoAttrs = daoMap.get(key);
 		
 		if(daoAttrs != null)
 		{
@@ -73,17 +108,10 @@ public class DaoInjectFilter extends AbstractActionFilter
 		}
 	}
 
-	private void tryPutDaoMap(Method method, List<DaoAttr> daoAttrList)
+	private void tryPutDaoMap(CoupleKey<Class<?>, Method> key, List<DaoAttr> daoAttrList)
 	{
-		synchronized(daoMap)
-		{
-			if(!daoMap.containsKey(method))
-			{
-				DaoAttr[] daoAttrs = daoAttrList.isEmpty() ? null : daoAttrList.toArray(new DaoAttr[daoAttrList.size()]);
-				
-				daoMap.put(method, daoAttrs);
-			}
-		}
+		DaoAttr[] daoAttrs = daoAttrList.isEmpty() ? null : daoAttrList.toArray(new DaoAttr[daoAttrList.size()]);
+		GeneralHelper.syncTryPut(daoMap, key, daoAttrs);
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -108,14 +136,14 @@ public class DaoInjectFilter extends AbstractActionFilter
 		daoAttrList.add(daoAttr);
 	}
 
-	private Map<String, DaoBean> parseDaoBeans(ActionExecutor executor, Action action, Method method) throws Exception
+	private Map<String, DaoBean> parseDaoBeans(ActionExecutor executor, Action action, CoupleKey<Class<?>, Method> key) throws Exception
 	{
 		Map<String, DaoBean> daoBeanMap	= new HashMap<String, DaoBean>();
 		
-		analysisDaoBeans(executor, action, method, daoBeanMap);
+		analysisDaoBeans(executor, action, key.getKey2(), daoBeanMap);
 		
 		if(daoBeanMap.isEmpty())
-			analysisDaoBeans(executor, action, action.getClass(), daoBeanMap);
+			analysisDaoBeans(executor, action, key.getKey1(), daoBeanMap);
 		
 		return daoBeanMap;
 	}
@@ -211,9 +239,7 @@ public class DaoInjectFilter extends AbstractActionFilter
 		
 		if(GeneralHelper.isStrNotEmpty(name))
 		{
-			if(!daoBeanMap.containsKey(name))
-				daoBeanMap.put(name, daoBean);
-			
+			GeneralHelper.tryPut(daoBeanMap, name, daoBean);
 			return;
 		}
 		
@@ -238,8 +264,7 @@ public class DaoInjectFilter extends AbstractActionFilter
 					found	= true;
 					name	= field.getName();
 					
-					if(!daoBeanMap.containsKey(name))
-						daoBeanMap.put(name, daoBean);
+					GeneralHelper.tryPut(daoBeanMap, name, daoBean);
 
 					if(single)
 						break LOOP;

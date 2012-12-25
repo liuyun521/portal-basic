@@ -1,3 +1,24 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util.mail;
 
 import java.io.File;
@@ -11,13 +32,15 @@ import javax.mail.*;
 import javax.mail.internet.*;
 import javax.activation.*;
 
+import com.bruce.util.GeneralHelper;
+
 /** 邮件发送类 */
 public class MailSender
 {
 	/** 默认 Content Type -> text/plain */
 	public static final String DEFAULT_CONTENT_TYPE	= "text/plain";
 	/** 默认字符编码 -> UTF-8 */
-	public static final String DEFAULT_CHARSET		= "UTF-8";
+	public static final String DEFAULT_ENCODING		= GeneralHelper.DEFAULT_ENCODING;
 	/** 默认 SMTP 端口 -> 25 */
 	public static final int DEFAULT_PORT			= 25;
 	
@@ -28,7 +51,7 @@ public class MailSender
 	private String subject		= "";
 	private String text			= "";
 	private String contentType	= DEFAULT_CONTENT_TYPE;
-	private String charset		= DEFAULT_CHARSET;
+	private String charset		= DEFAULT_ENCODING;
 	private int port			= DEFAULT_PORT;
 	private boolean auth		= true;
 	private boolean needReceipt	= false;

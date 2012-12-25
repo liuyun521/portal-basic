@@ -1,9 +1,31 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util.cache;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.bruce.util.GeneralHelper;
 import com.danga.MemCached.MemCachedClient;
 import com.danga.MemCached.SockIOPool;
 import com.schooner.MemCached.ObjectTransCoder;
@@ -14,7 +36,7 @@ import com.schooner.MemCached.TransCoder;
 public class MemCachedPool
 {
 	public static final String DEF_POOL_NAME				= "default";
-	public static final String DEF_DEFAULT_ENCODING			= "UTF-8";
+	public static final String DEF_ENCODING					= GeneralHelper.DEFAULT_ENCODING;
 	public static final boolean DEF_IS_TCP					= true;
 	public static final boolean DEF_IS_BINARY_PROTOCAL		= false;
 	public static final boolean DEF_IS_SANITIZE_KEYS		= true;
@@ -39,7 +61,7 @@ public class MemCachedPool
 	public static final TransCoder DEF_TRANS_CODER			= new ObjectTransCoder();
 
 	private String poolName				= DEF_POOL_NAME;
-	private String defaultEncoding		= DEF_DEFAULT_ENCODING;
+	private String defaultEncoding		= DEF_ENCODING;
 	private boolean tcp					= DEF_IS_TCP;
 	private boolean binaryProtocal		= DEF_IS_BINARY_PROTOCAL;
 	private boolean sanitizeKeys		= DEF_IS_SANITIZE_KEYS;

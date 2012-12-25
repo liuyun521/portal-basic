@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<app	xmlns="http://www.bruce.com"
-		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://www.bruce.com xsd/mvc-config-include.xsd">
+<MVC-INCLUDE	xmlns="http://www.bruce.com"
+				xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				xsi:schemaLocation="http://www.bruce.com xsd/mvc-config-include.xsd">
 		
-	<actions path="test">
+	<actions path="/test">
 		<action name="testBean_1">
 			<result>/jsp/test/bean/test_bean_1.jsp</result>
 		</action>
@@ -47,7 +47,7 @@
 		</action>
 	</actions>
 	
-	<actions path="test/dao">
+	<actions path="/test/dao">
 		<action name="testJdbc">
 			<result>/jsp/test/dao/test_user_1.jsp</result>
 		</action>
@@ -86,13 +86,13 @@
 		</action>
 	</actions>
 	
-	<actions path="test/page">
+	<actions path="/test/page">
 		<action name="queryInterest" class="action.test.QueryInterest">
 			<result>/jsp/test/static/test_query.jsp</result>
 		</action>
 	</actions>
 	
-	<actions path="test/ftl">
+	<actions path="/test/ftl">
 		<action name="queryInterest" class="action.test.QueryInterest">
 			<result>/ftl/test/test_query.ftl</result>
 		</action>
@@ -131,4 +131,4 @@
 		</action>	    
 	</actions>
 	
-</app>
+</MVC-INCLUDE>

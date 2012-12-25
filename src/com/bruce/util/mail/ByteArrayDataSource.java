@@ -1,3 +1,23 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.bruce.util.mail;
 
@@ -12,14 +32,16 @@ import java.io.UnsupportedEncodingException;
 
 import javax.activation.DataSource;
 
+import com.bruce.util.GeneralHelper;
+
 /** Byte Array 数据源，发送字节数组附件时用到 */
 class ByteArrayDataSource implements DataSource
 {
-	public static final String DEFAULT_CHARSET	= "UTF-8";
+	public static final String DEFAULT_ENCODING	= GeneralHelper.DEFAULT_ENCODING;
 	
-	private ByteArrayOutputStream	baos	= null;
-	private String					type	= "application/octet-stream";
-	private String					name	= "ByteArrayDataSource";
+	private ByteArrayOutputStream	baos		= null;
+	private String					type		= "application/octet-stream";
+	private String					name		= "ByteArrayDataSource";
 	
 	private void init(String type, String name)
 	{
@@ -113,7 +135,7 @@ class ByteArrayDataSource implements DataSource
 
 	public ByteArrayDataSource(String data, String type, String name) throws IOException
 	{
-		this(data, DEFAULT_CHARSET, type, name);
+		this(data, DEFAULT_ENCODING, type, name);
 	}
 
 	public ByteArrayDataSource(String data, String encoding, String type, String name) throws IOException

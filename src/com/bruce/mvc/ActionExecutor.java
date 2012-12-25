@@ -1,6 +1,26 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.mvc;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -8,6 +28,8 @@ import java.util.Queue;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.bruce.util.BeanHelper;
 
 /** Action 执行器，在 {@link ActionFilter} 的 doFilter() 方法中使用 */
 public class ActionExecutor
@@ -54,21 +76,7 @@ public class ActionExecutor
 		
 		if(!valid) return Action.INPUT;
 		
-		try
-		{
-			return (String)method.invoke(action);
-		}
-		catch(InvocationTargetException e)
-		{
-			Exception cause = (Exception)e.getCause();
-			if(cause == null) cause = e;
-			
-			throw cause;
-		}
-		catch(Exception e)
-		{
-			throw e;
-		}
+		return BeanHelper.invokeMethod(action, method);
 	}
 	
 	/** 获取当前被拦截的 {@link Action} 对象 */

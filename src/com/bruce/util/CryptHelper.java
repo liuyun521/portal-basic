@@ -1,3 +1,24 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util;
 
 import java.io.IOException;
@@ -31,7 +52,7 @@ public class CryptHelper
 	/** 解密模式 */
 	public static final int DECRYPT_MODE		= Cipher.DECRYPT_MODE;
 	/** 默认字符集（UTF-8） */
-	public static final String DEFAULT_CHARSET	= "UTF-8";
+	public static final String DEFAULT_ENCODING	= GeneralHelper.DEFAULT_ENCODING;
 	/** 加密方法：MD5 */
 	public static final String MD5				= "MD5";
 	/** 加密方法：SHA */
@@ -283,7 +304,7 @@ public class CryptHelper
 		}
 		catch(UnsupportedEncodingException e)
 		{
-			return url;
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -302,7 +323,7 @@ public class CryptHelper
 		}
 		catch(UnsupportedEncodingException e)
 		{
-			return url;
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -520,7 +541,7 @@ public class CryptHelper
 	private final static String safeCharset(String charset)
 	{
 		if(GeneralHelper.isStrEmpty(charset))
-			charset = DEFAULT_CHARSET;
+			charset = DEFAULT_ENCODING;
 		
 		return charset;
 	}

@@ -1,4 +1,25 @@
 /*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Created on 2005-3-10
  * 
  * By Kingfisher (Bruce.Liang)
@@ -30,14 +51,17 @@ import java.util.*;
  */
 public class HttpHelper
 {
+	
+	/** URL 地址分隔符 */
+	public static final String URL_PATH_SEPARATOR	= "/";
 	/** HTTP URL 标识 */
-	private static final String HTTP_SCHEMA			= "http";
+	public static final String HTTP_SCHEMA			= "http";
 	/** HTTPS URL 标识 */
-	private static final String HTTPS_SCHEMA		= "https";
+	public static final String HTTPS_SCHEMA			= "https";
 	/** HTTP 默认端口 */
-	private static final int HTTP_DEFAULT_PORT		= 80;
+	public static final int HTTP_DEFAULT_PORT		= 80;
 	/** HTTPS 默认端口 */
-	private static final int HTTPS_DEFAULT_PORT		= 443;
+	public static final int HTTPS_DEFAULT_PORT		= 443;
 	/** 默认缓冲区大小 */
 	private static final int DEFAULT_BUFFER_SIZE	= 4096;
 	
@@ -302,6 +326,19 @@ public class HttpHelper
 		result = result.replaceAll(" ", "&nbsp;");
 		
 		return result;
+	}
+	
+	/** 确保 URL 路径的前后存在 URL 路径分隔符 */
+	public static final String ensurePath(String path, String defPath)
+	{
+		if(GeneralHelper.isStrEmpty(path))
+			path = defPath;
+		if(!path.startsWith(URL_PATH_SEPARATOR))
+			path = URL_PATH_SEPARATOR + path;
+		if(!path.endsWith(URL_PATH_SEPARATOR))
+			path = path + URL_PATH_SEPARATOR;
+		
+		return path;
 	}
 	
 	/** 获取 {@link HttpServletRequest} 的指定属性值 */
@@ -781,6 +818,17 @@ public class HttpHelper
 		}
 
 		return platform;
+	}
+	
+	/** 设置 HTTP 的 'Content-Type' 响应头 */
+	public final static void setContentType(HttpServletResponse response, String contentType, String encoding)
+	{
+		StringBuilder sb = new StringBuilder(contentType);
+				
+		if(encoding != null)
+			sb.append(";charset=").append(encoding);
+		
+		response.setContentType(sb.toString());
 	}
 	
 	/** 禁止浏览器缓存当前页面 */

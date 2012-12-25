@@ -1,7 +1,29 @@
+/*
+ * Copyright Bruce Liang (ldcsaa@gmail.com)
+ *
+ * Author	: Bruce Liang
+ * Bolg		: http://www.cnblogs.com/ldcsaa
+ * WeiBo	: http://weibo.com/u/1402935851
+ * QQ Group	: http://qun.qq.com/#jointhegroup/gid/75375912
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bruce.util;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
@@ -18,25 +40,29 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * 
- * 公共帮助类
- *
- */
+/** 通用方法帮助类 */
 public class GeneralHelper
 {
 	private static final String[] SHORT_DATE_PATTERN 				= {"yyyy-MM-dd", "yyyy/MM/dd", "yyyy\\MM\\dd", "yyyyMMdd"};
 	private static final String[] LONG_DATE_PATTERN 				= {"yyyy-MM-dd HH:mm:ss", "yyyy/MM/dd HH:mm:ss", "yyyy\\MM\\dd HH:mm:ss", "yyyyMMddHHmmss"};
 	private static final String[] LONG_DATE_PATTERN_WITH_MILSEC 	= {"yyyy-MM-dd HH:mm:ss.SSS", "yyyy/MM/dd HH:mm:ss.SSS", "yyyy\\MM\\dd HH:mm:ss.SSS", "yyyyMMddHHmmssSSS"};
 	
+	/** 空字符串 */
+	public static final String EMPTY_STRING				= "";
+	/** 空字符串 */
+	public static final String DEFAULT_ENCODING			= "UTF-8";
 	/** 当前操作系统平台 */
 	public static final String OS_PLATFORM				= getOSName();
 	/** 当前操作系统平台是否为 Windows */
@@ -114,6 +140,71 @@ public class GeneralHelper
 	public final static boolean isStrURL(String str)
 	{
 		return str.matches("^((https?|ftp|news):\\/\\/)?([a-z]([a-z0-9\\-]*\\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel)|(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(\\/[a-z0-9_\\-\\.~]+)*(\\/([a-z0-9_\\-\\.]*)(\\?[a-z0-9+_\\-\\.%=&amp;]*)?)?(#[a-z][a-z0-9_]*)?$");
+	}
+	
+	/** 屏蔽正则表达式的转义字符（但不屏蔽 ignores 参数中包含的字符） */
+	public static final String escapeRegexChars(String str, char ... ignores)
+	{
+		final char ESCAPE_CHAR	 = '\\';
+		final char[] REGEX_CHARS = {'.', ',', '?', '+', '-', '*', '^', '$', '|', '&', '{', '}', '[', ']', '(', ')', '\\'};
+		
+		char[] regex_chars = REGEX_CHARS;
+		
+		if(ignores.length > 0)
+		{
+			Set<Character> cs = new HashSet<Character>(REGEX_CHARS.length);
+			
+			for(int i = 0; i < REGEX_CHARS.length; i++)
+				cs.add(REGEX_CHARS[i]);
+			for(int i = 0; i < ignores.length; i++)
+				cs.remove(ignores[i]);
+				
+			int i		= 0;
+			regex_chars = new char[cs.size()];
+			Iterator<Character> it = cs.iterator();
+			
+			while(it.hasNext())
+				regex_chars[i++] = it.next();				
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		
+		for(int i = 0; i < str.length(); i++)
+		{
+			char c = str.charAt(i);
+			
+			for(int j = 0; j < regex_chars.length; j++)
+			{
+				if(c == regex_chars[j])
+				{
+					sb.append(ESCAPE_CHAR);
+					break;
+				}
+			}
+			
+			sb.append(c);
+		}
+		
+		return sb.toString();
+	}
+
+	/** 符分割字符串（分割符：" \t\n\r\f,;"） */
+	public final static String[] splitStr(String str)
+	{
+		return splitStr(str, " \t\n\r\f,;");
+	}
+	
+	/** 符分割字符串（分割符：由 delim 参数指定） */
+	public final static String[] splitStr(String str, String delim)
+	{
+		StringTokenizer st	= new StringTokenizer(str, delim);
+		String[] array		= new String[st.countTokens()];
+		
+		int i = 0;
+		while(st.hasMoreTokens())
+			array[i++] = st.nextToken();
+		
+		return array;
 	}
 
 	/** 当前线程调用 sleep() 方法暂停 period 毫秒 */
@@ -371,7 +462,14 @@ public class GeneralHelper
 	/** String -> boolean，如果转换不成功则返回默认值 d */
 	public final static boolean str2Boolean(String s, boolean d)
 	{
-		return Boolean.parseBoolean(safeTrimString(s));
+		s = safeTrimString(s);
+		
+		if(s.equalsIgnoreCase("true"))
+			return true;
+		else if(s.equalsIgnoreCase("false"))
+			return false;
+		
+		return d;
 	}
 
 	/** String -> boolean，如果转换不成功则返回 0 */
@@ -387,7 +485,7 @@ public class GeneralHelper
 		
 		try
 		{
-			DateFormat df	= new SimpleDateFormat(format);
+			DateFormat df = new SimpleDateFormat(format);
 			date = df.parse(safeTrimString(str));
 		}
 		catch(Exception e)
@@ -407,27 +505,39 @@ public class GeneralHelper
 		{
 			final char SEPARATOR	= '-';
 			final String[] PATTERN	= {"yyyy", "MM", "dd", "HH", "mm", "ss", "SSS"};
-			String[] element		= safeTrimString(str).split("\\D|\\\\");
-			int length				= Math.min(PATTERN.length, element.length);
-
-			if(length > 0 && element[0].length() > 0)
+			String[] values			= safeTrimString(str).split("\\D");
+			String[] element		= new String[values.length];
+			
+			int length = 0;
+			for(String e : values)
 			{
-	       			StringBuilder value	= new StringBuilder();
+				e = e.trim();
+				if(e.length() != 0)
+				{
+					element[length++] = e;
+					if(length == PATTERN.length)
+						break;
+				}
+			}
+
+			if(length > 0)
+			{
+	       		StringBuilder value	= new StringBuilder();
 
 				if(length > 1)
 				{
-	        			for(int i = 0; i < length; ++i)
-	        			{
-	        				value.append(element[i]);
-	        				value.append(SEPARATOR);
-	        			}
+        			for(int i = 0; i < length; ++i)
+        			{
+        				value.append(element[i]);
+        				value.append(SEPARATOR);
+        			}
 				}
 				else
 				{
-					String src		= element[0];
+					String src	= element[0];
 					int remain	= src.length();
 					int pos		= 0;
-					int i			= 0;
+					int i		= 0;
 
 					for(i = 0; remain > 0 && i < PATTERN.length; ++i)
 					{
@@ -444,16 +554,15 @@ public class GeneralHelper
 					length = i;
 				}
 
-	     			StringBuilder format = new StringBuilder();
+     			StringBuilder format = new StringBuilder();
 
-	     			 for(int i = 0; i < length; ++i)
+     			for(int i = 0; i < length; ++i)
 				{
 					format.append(PATTERN[i]);
 					format.append(SEPARATOR);
 				}
 
 				date = str2Date(value.toString(), format.toString());
-
 			}
 		}
 		catch(Exception e)
@@ -694,14 +803,14 @@ public class GeneralHelper
 
 	}
 
-	/**  java.util.Date -> String，str 的格式由 format  定义 */
+	/** java.util.Date -> String，str 的格式由 format  定义 */
 	public final static String date2Str(Date date, String format)
 	{
 		DateFormat df	= new SimpleDateFormat(format);
 		return df.format(date);
 	}
 
-	/**  修整 SQL 语句字符串：' -> ''，（includeWidlcard 指定是否对星号和问号作转换：* -> %, ? -> _） */
+	/** 修整 SQL 语句字符串：' -> ''，（includeWidlcard 指定是否对星号和问号作转换：* -> %, ? -> _） */
 	public static final String regularSQLStr(String str, boolean includeWidlcard)
 	{
 		str = str.replace("'", "''");
@@ -714,8 +823,71 @@ public class GeneralHelper
 
 		return str;
 	}
+	
+	/** 获取 clazz 的 {@link ClassLoader} 对象，如果为 null 则返回当前线程的 Context {@link ClassLoader} */
+	public static final ClassLoader getClassLoader(Class<?> clazz)
+	{
+		ClassLoader loader = clazz.getClassLoader();
+		
+		if(loader == null)
+			loader = Thread.currentThread().getContextClassLoader();
+		
+		return loader;
+	}
+	
+	/** 加载类名为  className 的 {@link Class} 对象，如果加载失败则返回 null */
+	public static final Class<?> loadClass(String className)
+	{
+		Class<?> clazz		= null;
+		ClassLoader loader	= getClassLoader(GeneralHelper.class);
+		
+		try
+		{
+			clazz = loader.loadClass(className);
+		}
+		catch(ClassNotFoundException e)
+		{
+			
+		}
+		
+		return clazz;
+	}
 
-	/**  获取 clazz 资源环境中 resPath 相对路径的 URL 对象 */
+	/** 用 {@linkplain Class#forName(String)} 加载 {@link Class} 对象，如果加载失败则返回 null */
+	public static final Class<?> classForName(String name)
+	{
+		Class<?> clazz = null;
+		
+		try
+		{
+			clazz = Class.forName(name);
+		}
+		catch(ClassNotFoundException e)
+		{
+			
+		}
+		
+		return clazz;
+	}
+
+	/** 用 {@linkplain Class#forName(String, boolean, ClassLoader)} 加载 {@link Class} 对象，如果加载失败则返回 null */
+	public static final Class<?> classForName(String name, boolean initialize, ClassLoader loader)
+	{
+		Class<?> clazz = null;
+		
+		try
+		{
+			clazz = Class.forName(name, initialize, loader);
+		}
+		catch(ClassNotFoundException e)
+		{
+			
+		}
+		
+		return clazz;
+	}
+
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 对象 */
 	public static final URL getClassResource(Class<?> clazz, String resPath)
 	{
 		URL url = clazz.getResource(resPath);
@@ -735,7 +907,38 @@ public class GeneralHelper
 		return url;
 	}
 
-	/**  获取 clazz 资源环境中 resPath 的 {@link InputStream} */
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 对象列表 */
+	public static final List<URL> getClassResources(Class<?> clazz, String resPath)
+	{
+		List<URL> urlList		= new ArrayList<URL>();
+		Enumeration<URL> urls	= null;
+		
+		try
+		{
+    		ClassLoader loader = clazz.getClassLoader();
+    		if(loader != null) urls = loader.getResources(resPath);
+    		
+    		if(urls == null || !urls.hasMoreElements())
+    		{
+    			loader = Thread.currentThread().getContextClassLoader();
+    			if(loader != null) urls = loader.getResources(resPath);
+    		}
+		}
+		catch(IOException e)
+		{
+			throw new RuntimeException(e);
+		}
+		
+		if(urls != null)
+		{
+			while(urls.hasMoreElements())
+				urlList.add(urls.nextElement());
+		}
+
+		return urlList;
+	}
+
+	/** 获取 clazz 资源环境中 resPath 的 {@link InputStream} */
 	public static final InputStream getClassResourceAsStream(Class<?> clazz, String resPath)
 	{
 		InputStream is = clazz.getResourceAsStream(resPath);
@@ -755,13 +958,13 @@ public class GeneralHelper
 		return is;
 	}
 
-	/**  获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径（返还的绝对路径用 UTF-8 编码） */
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径（返还的绝对路径用 UTF-8 编码） */
 	public static final String getClassResourcePath(Class<?> clazz, String resPath)
 	{
-		return getClassResourcePath(clazz, resPath, "UTF-8");
+		return getClassResourcePath(clazz, resPath, DEFAULT_ENCODING);
 	}
 
-	/**  获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径（返还的绝对路径用 pathEnc 编码） */
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径（返还的绝对路径用 pathEnc 编码） */
 	public static final String getClassResourcePath(Class<?> clazz, String resPath, String pathEnc)
 	{
 		String path = null;
@@ -784,13 +987,42 @@ public class GeneralHelper
 		return path;
 	}
 
-	/**  获取 clazz 资源环境的当前 URL 绝对路径（返回的绝对路径用 pathEnc 编码） */
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径列表（返还的绝对路径用 UTF-8 编码） */
+	public static final List<String> getClassResourcePaths(Class<?> clazz, String resPath)
+	{
+		return getClassResourcePaths(clazz, resPath, DEFAULT_ENCODING);
+	}
+
+	/** 获取 clazz 资源环境中 resPath 相对路径的 URL 绝对路径列表（返还的绝对路径用 pathEnc 编码） */
+	public static final List<String> getClassResourcePaths(Class<?> clazz, String resPath, String pathEnc)
+	{
+		List<String> pathList = new ArrayList<String>();
+
+		try
+		{
+			List<URL> urlList = getClassResources(clazz, resPath);
+			
+			for(URL url : urlList)
+			{
+				String path = URLDecoder.decode(url.getPath(), pathEnc);
+				pathList.add(path);
+			}
+		}
+		catch(UnsupportedEncodingException e)
+		{
+			throw new RuntimeException(e);
+		}
+
+		return pathList;
+	}
+
+	/** 获取 clazz 资源环境的当前 URL 绝对路径（返回的绝对路径用 pathEnc 编码） */
 	public static final String getClassPath(Class<?> clazz)
 	{
 		return getClassResourcePath(clazz, ".");
 	}
 
-	/**  获取 resource 资源的 locale 本地化文件中名字为 key 的字符串资源，并代入 params 参数 */
+	/** 获取 resource 资源的 locale 本地化文件中名字为 key 的字符串资源，并代入 params 参数 */
 	public static final String getResourceMessage(Locale locale, String resource, String key, Object ... params)
 	{
 		ResourceBundle bundle = ResourceBundle.getBundle(resource, locale);
@@ -802,13 +1034,13 @@ public class GeneralHelper
 		return msg;
 	}
 
-	/**  获取 resource 资源的默认本地化文件中名字为 key 的字符串资源，并代入 params 参数 */
+	/** 获取 resource 资源的默认本地化文件中名字为 key 的字符串资源，并代入 params 参数 */
 	public static final String getResourceMessage(String resource, String key, Object ... params)
 	{
 		return getResourceMessage(Locale.getDefault(), resource, key, params);
 	}
 
-	/**  获取 e 异常的堆栈列表，最带的堆栈层数由 levels 指定 */
+	/** 获取 e 异常的堆栈列表，最带的堆栈层数由 levels 指定 */
 	public static final List<String> getExceptionMessageStack(Throwable e, int levels)
 	{
 		List<String> list = new ArrayList<String>();
@@ -838,13 +1070,13 @@ public class GeneralHelper
 		return list;
 	}
 
-	/**  获取 e 异常的整个堆栈列表 */
+	/** 获取 e 异常的整个堆栈列表 */
 	public static final List<String> getExceptionMessageStack(Throwable e)
 	{
 		return getExceptionMessageStack(e, 0);
 	}
 
-	/**  输出 e 异常的 levels 层堆栈列表到 ps 中 */
+	/** 输出 e 异常的 levels 层堆栈列表到 ps 中 */
 	public static final void printExceptionMessageStack(Throwable e, int levels, PrintStream ps)
 	{
 		List<String> list = getExceptionMessageStack(e, levels);
@@ -853,43 +1085,157 @@ public class GeneralHelper
 			ps.println(msg);
 	}
 
-	/**  输出 e 异常的 levels 层堆栈列表到标准错误流中 */
+	/** 输出 e 异常的 levels 层堆栈列表到标准错误流中 */
 	public static final void printExceptionMessageStack(Throwable e, int levels)
 	{
 		printExceptionMessageStack(e, levels, System.err);
 	}
 
-	/**  输出 e 异常的整个堆栈列表到 ps 中 */
+	/** 输出 e 异常的整个堆栈列表到 ps 中 */
 	public static final void printExceptionMessageStack(Throwable e, PrintStream ps)
 	{
 		printExceptionMessageStack(e, 0, ps);
 	}
 
-	/**  输出 e 异常的整个堆栈列表到标准错误流中 */
+	/** 输出 e 异常的整个堆栈列表到标准错误流中 */
 	public static final void printExceptionMessageStack(Throwable e)
 	{
 		printExceptionMessageStack(e, 0);
 	}
+	
+	/** 把元素添加到 {@link Map} 中，不保证线程安全（不替换原值） */
+	public static final <K, V> boolean tryPut(Map<K, V> map, K key, V value)
+	{
+		return tryPut(map, key, value, false);
+	}
+	
+	/** 把元素添加到 {@link Map} 中，不保证线程安全 */
+	public static final <K, V> boolean tryPut(Map<K, V> map, K key, V value, boolean replace)
+	{
+		if(replace || !map.containsKey(key))
+		{
+			map.put(key, value);
+			return true;
+		}
+		
+		return false;
+	}
 
-	/**  获取当前 JVM 进程的 ID */
+	/** 把元素添加到 {@link Map} 中，并保证线程安全（不替换原值） */
+	public static final <K, V> boolean syncTryPut(Map<K, V> map, K key, V value)
+	{
+		return syncTryPut(map, key, value, false);
+	}
+	
+	/** 把元素添加到 {@link Map} 中，并保证线程安全 */
+	public static final <K, V> boolean syncTryPut(Map<K, V> map, K key, V value, boolean replace)
+	{
+		synchronized(map)
+		{
+			return tryPut(map, key, value, replace);
+		}
+	}
+
+	/** 把元素添加到 {@link Map} 中，不保证线程安全（不替换原值） */
+	public static final <K, V> int tryPutAll(Map<K, V> map, Map<K, V> src)
+	{
+		return tryPutAll(map, src, false);
+	}
+	
+	/** 把元素添加到 {@link Map} 中，不保证线程安全 */
+	public static final <K, V> int tryPutAll(Map<K, V> map, Map<K, V> src, boolean replace)
+	{
+		if(replace)
+		{
+			map.putAll(src);
+			return src.size();
+		}
+		
+		int count = 0;
+		Set<Map.Entry<K, V>> entries = src.entrySet();
+		
+		for(Map.Entry<K, V> e : entries)
+		{
+			if(!map.containsKey(e.getKey()))
+			{
+				map.put(e.getKey(), e.getValue());
+				++count;
+			}
+		}
+		
+		return count;
+	}
+
+	/** 把元素添加到 {@link Map} 中，并保证线程安全（不替换原值） */
+	public static final <K, V> int syncTryPutAll(Map<K, V> map, Map<K, V> src)
+	{
+		return syncTryPutAll(map, src, false);
+	}
+	
+	/** 把元素添加到 {@link Map} 中，并保证线程安全 */
+	public static final <K, V> int syncTryPutAll(Map<K, V> map, Map<K, V> src, boolean replace)
+	{
+		synchronized(map)
+		{
+			return tryPutAll(map, src, replace);
+		}
+	}
+
+	/** 从 {@link Map} 中删除元素，不保证线程安全 */
+	public static final <K, V> boolean tryRemove(Map<K, V> map, K key)
+	{
+		if(map.containsKey(key))
+		{
+			map.remove(key);
+			return true;
+		}
+		
+		return false;
+	}
+
+	/** 从 {@link Map} 中删除元素，并保证线程安全 */
+	public static final <K, V> boolean syncTryRemove(Map<K, V> map, K key)
+	{
+		synchronized(map)
+		{
+			return tryRemove(map, key);
+		}
+	}
+
+	/** 清空 {@link Map}，不保证线程安全 */
+	public static final <K, V> void tryClear(Map<K, V> map)
+	{
+		map.clear();
+	}
+
+	/** 清空 {@link Map}，并保证线程安全 */
+	public static final <K, V> void syncTryClear(Map<K, V> map)
+	{
+		synchronized(map)
+		{
+			tryClear(map);
+		}
+	}
+
+	/** 获取当前 JVM 进程的 ID */
 	public static final int getProcessId()
 	{
 		return Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
 	}
 
-	/**  获取当前 JVM 进程的 Java 版本 */
+	/** 获取当前 JVM 进程的 Java 版本 */
 	public static final String getJavaVersion()
 	{
 		return System.getProperty("java.version");
 	}
 
-	/**  获取当前操作系统的名称 */
+	/** 获取当前操作系统的名称 */
 	public static final String getOSName()
 	{
 		return System.getProperty("os.name");
 	}
 
-	/**  检查当前操作系统是否为 Windows 系列 */
+	/** 检查当前操作系统是否为 Windows 系列 */
 	public static final boolean isWindowsPlatform()
 	{
 		// return CURRENT_OS.toUpperCase().indexOf("WINDOWS") != -1;
