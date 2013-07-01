@@ -5,9 +5,9 @@
 -->
 <proxool-config>
 <proxool>
-	<alias>portal-2</alias>
+	<alias>jessma-2</alias>
 	
-	<driver-url>jdbc:mysql://localhost:3306/myportal?autoReconnect=true&amp;failOverReadOnly=false&amp;useUnicode=true&amp;characterEncoding=UTF-8</driver-url>
+	<driver-url>jdbc:mysql://localhost:3306/myjessma?autoReconnect=true&amp;failOverReadOnly=false&amp;useUnicode=true&amp;characterEncoding=UTF-8</driver-url>
 	<driver-class>com.mysql.jdbc.Driver</driver-class>
 	<driver-properties>
 		<property name="user" value="bruce"/>

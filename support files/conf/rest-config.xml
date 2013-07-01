@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<REST	xmlns="http://www.bruce.com"
+<REST	xmlns="http://www.jessma.org"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://www.bruce.com xsd/rest-config.xsd">
+		xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/rest-config-3.2.xsd">
 	<global>
 		<!-- request 和 response 的默认编码（可选，默认：不设置） -->
 		<encoding>UTF-8</encoding>
@@ -12,7 +12,7 @@
 		<!-- 默认 Action 路径（可选，默认：'/'） -->
 		<default-action-path>/test/rest</default-action-path>
 		<!-- 应用程序支持的视图类型（可选，默认：'html'） -->
-		<!-- Portal-Basic 3.0.1 支持 'html, xml, json' 三种类型 -->
+		<!-- JessMA 3.2.1 支持 'html, xml, json' 三种类型 -->
 		<!-- （注：第一个元素作为不带后缀名请求的默认视图类型） -->
 		<support-render-types>html, xml, json</support-render-types>
 	</global>

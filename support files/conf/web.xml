@@ -118,7 +118,7 @@
 	<!-- REST 请求过滤器 -->
 	<filter>
 		<filter-name>RestDispatcher</filter-name>
-		<filter-class>com.bruce.ext.rest.RestDispatcher</filter-class>
+		<filter-class>org.jessma.ext.rest.RestDispatcher</filter-class>
 		<async-supported>true</async-supported>
 		
 		<!-- REST 配置文件（可选，默认：rest-config.xml） -->
@@ -146,7 +146,7 @@
 	<!-- MVC 前端控制器 -->
 	<filter>
 		<filter-name>ActionDispatcher</filter-name>
-		<filter-class>com.bruce.mvc.ActionDispatcher</filter-class>
+		<filter-class>org.jessma.mvc.ActionDispatcher</filter-class>
 		<async-supported>true</async-supported>
 	
 		<!-- MVC 主配置文件 -->
@@ -180,9 +180,9 @@
 		<listener-class>net.sf.ehcache.constructs.web.ShutdownListener</listener-class>
 	</listener>
 
-	<!-- Portal-Basic 启动器 -->
+	<!-- JessMA 启动器 -->
 	<listener>
-		<listener-class>com.bruce.app.AppListener</listener-class>
+		<listener-class>org.jessma.app.AppListener</listener-class>
 	</listener>
 	
 	<!-- Freemarker 模板处理器 -->
