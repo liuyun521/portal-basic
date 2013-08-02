@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
 /** 包资源访问帮助类 */
 public class PackageHelper
@@ -174,10 +175,38 @@ public class PackageHelper
 		}
 	}
 	
+	/** 包过滤器接口 */
+	public static interface PackageFilter
+	{
+		/** 过滤方法
+		 *
+		 * @param packageName	: 包名称
+		 * @return				  true -> 接受, false -> 不接受
+		 */
+		boolean accept(String packageName);
+	}
+	
+	/** 正则表达式过滤器 */
+	public static class PatternFilter implements PackageFilter
+	{
+		Pattern pattern;
+		
+		public PatternFilter(String pattern)
+		{
+			this.pattern = Pattern.compile(pattern);
+		}
+		
+		@Override
+		public boolean accept(String packageName)
+		{
+			return pattern.matcher(packageName).matches();
+		}
+	}
+	
 	/** 
 	 * 获取包中某些类的 {@link Class} 对象集合（只获取顶层类）
 	 * 
-	 * @param basePackage		: 包名
+	 * @param basePackage		: 包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
 	 * @param recursive			: 是否递归子包
 	 * @return					     符合条件的 {@link Class} 对象集合
 	 */
@@ -189,7 +218,7 @@ public class PackageHelper
 	/** 
 	 * 获取包中某些类的 {@link Class} 对象集合（只获取与 compatibleType 兼容的顶层类）
 	 * 
-	 * @param basePackage		: 包名
+	 * @param basePackage		: 包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
 	 * @param recursive			: 是否递归子包
 	 * @param compatibleType	: 兼容类型
 	 * @return					     符合条件的 {@link Class} 对象集合
@@ -202,7 +231,7 @@ public class PackageHelper
 	/** 
 	 * 获取包中某些类的 {@link Class} 对象集合（只获取顶层类）
 	 * 
-	 * @param basePackage		: 包名
+	 * @param basePackage		: 包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
 	 * @param recursive			: 是否递归子包
 	 * @param classFilter		: 类型过滤器，参考：{@link PackageHelper.ClassFilter}
 	 * @return					     符合条件的 {@link Class} 对象集合
@@ -215,7 +244,7 @@ public class PackageHelper
 	/** 
 	 * 获取包中某些类的 {@link Class} 对象集合
 	 * 
-	 * @param basePackage		: 包名
+	 * @param basePackage		: 包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
 	 * @param recursive			: 是否递归子包
 	 * @param classFilter		: 类型过滤器，参考：{@link PackageHelper.ClassFilter}
 	 * @param resourceFilter	: 资源文件过滤器，参考：{@link PackageHelper.ResourceFilter}
@@ -312,8 +341,13 @@ public class PackageHelper
 	 * @param filter			: 资源文件过滤器，参考：{@link PackageHelper.ResourceFilter}
 	 * @param names				: 扫描结果集合
 	 */
-	public static final void scanResourceNamesByFile(String filePath, final int packageStartIndex, final boolean recursive, final ResourceFilter filter, Set<String> names)
+	public static final void scanResourceNamesByFile(String filePath, int packageStartIndex, final boolean recursive, final ResourceFilter filter, Set<String> names)
 	{
+		if(filePath.endsWith(PATH_SEP_STR))
+			filePath = filePath.substring(0, filePath.length() - 1);
+		if(packageStartIndex > filePath.length())
+			packageStartIndex = filePath.length();
+		
 		final String basePackagePath = filePath.substring(packageStartIndex);
 
 		File dir	 = new File(filePath);
@@ -341,8 +375,7 @@ public class PackageHelper
 
 			if(file.isDirectory())
 			{
-				String subPath = filePath.endsWith(PATH_SEP_STR) ?
-								 filePath + name : filePath + PATH_SEP_CHAR + name;
+				String subPath = filePath + PATH_SEP_CHAR + name;
 				
 				scanResourceNamesByFile(subPath, packageStartIndex, recursive, filter, names);
 			}
@@ -350,6 +383,8 @@ public class PackageHelper
 			{				
 				if(basePackagePath.length() != 0)
 					name = basePackagePath + PATH_SEP_CHAR + name;
+				if(name.startsWith(PATH_SEP_STR))
+					name = name.substring(1, name.length());
 				
 				names.add(name);
 			}
@@ -396,7 +431,7 @@ public class PackageHelper
 				if(entry.isDirectory() || !name.startsWith(basePackagePath))
 					continue;
 				
-				if(!recursive && nameIndex != basePackagePath.lastIndexOf(PACKAGE_SEP_CHAR))
+				if(!recursive && nameIndex != basePackagePath.length())
 					continue;
 				
 				String packagePath	= (nameIndex != -1 ? name.substring(0, nameIndex)  : EMPTY_STR);
@@ -414,6 +449,179 @@ public class PackageHelper
 		}
 	}
 	
+	/**
+	 * 获取符合特定正则表达式的包名称集合（注：不扫描 jar 文件）
+	 * 
+	 * @param pattern		: 正则表达式，通过 {@link PackageHelper.PatternFilter} 进行过滤
+	 * @return				     符合条件的子包名称集合
+	 */
+	public static final Set<String> getPackages(String pattern)
+	{
+		return getPackages("", pattern);
+	}
+	
+	/**
+	 * 获取包中符合特定正则表达式的子包名称集合
+	 * 
+	 * @param basePackage	: 根包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
+	 * @param pattern		: 正则表达式，通过 {@link PackageHelper.PatternFilter} 进行过滤
+	 * @return				     符合条件的子包名称集合
+	 */
+	public static final Set<String> getPackages(String basePackage, String pattern)
+	{
+		return getPackages(basePackage, new PatternFilter(pattern));
+	}
+	
+	/**
+	 * 获取包中符合过滤条件的子包名称集合
+	 * 
+	 * @param basePackage		: 根包名（注：如果 basePackage 为空字符串("")，则不扫描 jar 文件）
+	 * @param filter			: 包过滤器，如果为 null 则不过滤，参考：{@link PackageHelper.PackageFilter}
+	 * @return					     符合条件的子包名称集合
+	 */
+	public static final Set<String> getPackages(String basePackage, PackageFilter filter)
+	{
+		String basePackagePath = basePackage.replace(PACKAGE_SEP_CHAR, PATH_SEP_CHAR);
+		basePackagePath = adjustBasePackagePath(basePackagePath);
+		
+		Set<String> names = new HashSet<String>();
+		List<URL> urlList = GeneralHelper.getClassResources(PackageHelper.class, basePackagePath);
+		
+		for(URL url : urlList)
+		{
+			String protocol	= url.getProtocol();
+			
+			if(protocol.equals(FILE_PROTOCOL))
+			{
+				String filePath			= CryptHelper.urlDecode(url.getPath());
+				int packageStartIndex	= filePath.lastIndexOf(basePackagePath);
+				
+				scanPackageNamesByFile(filePath, packageStartIndex, filter, names);
+			}
+			else if(protocol.equals(JAR_PROTOCOL))
+				scanPackageNamesByJar(url, basePackagePath, filter, names);
+		}
+
+		return names;
+	}
+	
+	/**
+	 * 在文件系统中扫描子包
+	 * 
+	 * @param filePath			: 文件目录
+	 * @param packageStartIndex	: filePath 参数中包名称的起始位置
+	 * @param names				: 扫描结果集合
+	 */
+	public static final void scanPackageNamesByFile(String filePath, int packageStartIndex, Set<String> names)
+	{
+		scanPackageNamesByFile(filePath, packageStartIndex, null, names);
+	}
+	
+	/**
+	 * 在文件系统中扫描子包
+	 * 
+	 * @param filePath			: 文件目录
+	 * @param packageStartIndex	: filePath 参数中包名称的起始位置
+	 * @param filter			: 包过滤器，参考：{@link PackageHelper.PackageFilter}
+	 * @param names				: 扫描结果集合
+	 */
+	public static final void scanPackageNamesByFile(String filePath, int packageStartIndex, PackageFilter filter, Set<String> names)
+	{
+		if(filePath.endsWith(PATH_SEP_STR))
+			filePath = filePath.substring(0, filePath.length() - 1);
+		if(packageStartIndex > filePath.length())
+			packageStartIndex = filePath.length();
+		
+		final String basePackagePath = filePath.substring(packageStartIndex);
+
+		File dir	 = new File(filePath);
+		File[] files = dir.listFiles(new FileFilter()
+                    		{
+                    			@Override
+                    			public boolean accept(File file)
+                    			{
+                    				if(file.isDirectory())
+                    					return true;
+                    				
+                    				return false;
+                    			}
+                    		});
+		
+		for(File file : files)
+		{
+			String name = file.getName();
+			String packageName = name;
+				
+			if(basePackagePath.length() != 0)
+				packageName = basePackagePath + PATH_SEP_CHAR + packageName;
+			if(packageName.startsWith(PATH_SEP_STR))
+				packageName = packageName.substring(1, packageName.length());
+			
+			packageName = packageName.replace(PATH_SEP_CHAR, PACKAGE_SEP_CHAR);
+			
+			if(filter == null || filter.accept(packageName))
+				names.add(packageName);
+			
+			String subPath = filePath + PATH_SEP_CHAR + name;
+			
+			scanPackageNamesByFile(subPath, packageStartIndex, filter, names);
+		}
+	}
+	
+	/**
+	 * 在 jar 文件中扫描子包
+	 * 
+	 * @param url				: jar 文件的 URL
+	 * @param basePackagePath	: jar 文件中的包路径
+	 * @param names				: 扫描结果集合
+	 */
+	public static final void scanPackageNamesByJar(URL url, String basePackagePath, Set<String> names)
+	{
+		scanPackageNamesByJar(url, basePackagePath, null, names);
+	}
+	/**
+	 * 在 jar 文件中扫描子包
+	 * 
+	 * @param url				: jar 文件的 URL
+	 * @param basePackagePath	: jar 文件中的包路径
+	 * @param filter			: 包过滤器，参考：{@link PackageHelper.PackageFilter}
+	 * @param names				: 扫描结果集合
+	 */
+	public static final void scanPackageNamesByJar(URL url, String basePackagePath, final PackageFilter filter, Set<String> names)
+	{
+		basePackagePath = adjustBasePackagePath(basePackagePath);
+		
+		try
+		{
+			JarFile jar = ((JarURLConnection)url.openConnection()).getJarFile();
+			Enumeration<JarEntry> entries = jar.entries();
+			
+			while(entries.hasMoreElements())
+			{
+				JarEntry entry	= entries.nextElement();
+				String name		= entry.getName();
+				
+				if(!entry.isDirectory() || !name.startsWith(basePackagePath))
+					continue;
+				
+				if(name.endsWith(PATH_SEP_STR))
+					name = name.substring(0, name.length() - 1);
+				
+				if(name.equals(basePackagePath))
+					continue;
+				
+				String packageName = name.replace(PATH_SEP_CHAR, PACKAGE_SEP_CHAR);
+				
+				if(filter == null || filter.accept(packageName))
+					names.add(packageName);
+			}
+		}
+		catch(IOException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+	
 	private static final String adjustBasePackagePath(String basePackagePath)
 	{
 		basePackagePath = GeneralHelper.safeTrimString(basePackagePath).replace(PACKAGE_SEP_CHAR, PATH_SEP_CHAR);
@@ -423,6 +631,7 @@ public class PackageHelper
 		
 		if(basePackagePath.endsWith(PATH_SEP_STR))
 			basePackagePath = basePackagePath.substring(0, basePackagePath.length() - 1);
+		
 		return basePackagePath;
 	}
 }

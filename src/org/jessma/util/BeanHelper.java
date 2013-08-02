@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -108,7 +108,14 @@ public class BeanHelper
 		return (!Modifier.isStatic(flag) && !Modifier.isAbstract(flag) && Modifier.isPublic(flag));
 	}
 	
-	/** 检查是否为非接口非抽象类 */
+	/** 检查是否为公共接口 */
+	public static final boolean isPublicInterface(Class<?> clazz)
+	{
+		int flag = clazz.getModifiers();
+		return (Modifier.isInterface(flag) && Modifier.isPublic(flag));
+	}
+
+	/** 检查是否为公共类 */
 	public static final boolean isPublicClass(Class<?> clazz)
 	{
 		int flag = clazz.getModifiers();

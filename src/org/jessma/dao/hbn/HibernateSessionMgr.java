@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -27,6 +27,9 @@ package org.jessma.dao.hbn;
 import java.security.InvalidParameterException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
+
+import javax.persistence.Entity;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -37,7 +40,10 @@ import org.hibernate.jdbc.Work;
 import org.jessma.dao.AbstractSessionMgr;
 import org.jessma.dao.SessionMgr;
 import org.jessma.dao.TransIsoLevel;
+import org.jessma.util.BeanHelper;
 import org.jessma.util.GeneralHelper;
+import org.jessma.util.PackageHelper;
+import org.jessma.util.PackageHelper.ClassFilter;
 
 /**
  * 
@@ -62,11 +68,14 @@ public class HibernateSessionMgr extends AbstractSessionMgr<Session>
 	public static final String DEFAULT_CONFIG_FILE = "hibernate.cfg.xml";
 	/** Session Factory 工厂对象 */
 	private SessionFactory sessionFactory;
+	/** 实体对象包名正则表达式 */
+	private String pattern;
 	
 	/** 
 	 * 初始化 
 	 * 
-	 * @param args [0]	: hbn_cfg_file （默认：{@link HibernateSessionMgr#DEFAULT_CONFIG_FILE}）
+	 * @param args <br> [0]	: hbn_cfg_file （默认：{@link HibernateSessionMgr#DEFAULT_CONFIG_FILE}） <br> 
+	 * 					[1]	: pattern （实体对象包名正则表达式，用于自动扫描声明了 {@linkplain Entity @Entity} 注解的实体类）
 	 * @throws InvalidParameterException
 	 * @throws HibernateException
 	 * 
@@ -78,6 +87,8 @@ public class HibernateSessionMgr extends AbstractSessionMgr<Session>
 			initialize();
 		else if(args.length == 1)
 			initialize(args[0]);
+		else if(args.length == 2)
+			initialize(args[0], args[1]);
 		else
 			throw new InvalidParameterException("HibernateSessionMgr initialize fail (invalid paramers)");
 	}
@@ -104,7 +115,22 @@ public class HibernateSessionMgr extends AbstractSessionMgr<Session>
 	 */
 	public void initialize(String hbn_cfg_file)
 	{
-		configFile = GeneralHelper.isStrNotEmpty(hbn_cfg_file) ? hbn_cfg_file : DEFAULT_CONFIG_FILE;
+		initialize(hbn_cfg_file, null);
+	}
+	
+	/**
+	 * 
+	 * 使用特定的 Hibernate 配置文件配置 {@link SessionFactory}，并自动扫描特定包下的实体对象
+	 * 
+	 * @param hbn_cfg_file			: 配置文件路径 
+	 * @param packages				: 实体对象基包 
+	 * @throws HibernateException	: 配置失败时抛出该异常
+	 * 
+	 */
+	public void initialize(String hbn_cfg_file, String packages)
+	{
+		configFile	= GeneralHelper.isStrNotEmpty(hbn_cfg_file) ? hbn_cfg_file : DEFAULT_CONFIG_FILE;
+		pattern		= packages;
 		
 		try
 		{
@@ -116,7 +142,7 @@ public class HibernateSessionMgr extends AbstractSessionMgr<Session>
 			throw e;
 		}
 	}
-	
+
 	/**
 	 * 
 	 * 关闭 {@link SessionFactory}
@@ -232,7 +258,34 @@ public class HibernateSessionMgr extends AbstractSessionMgr<Session>
 	@SuppressWarnings("deprecation")
 	protected SessionFactory buildSessionFactory()
 	{
-		return new Configuration().configure(configFile).buildSessionFactory();
+		Configuration cfg = new Configuration();
+		
+		if(GeneralHelper.isStrNotEmpty(pattern))
+		{
+			Set<String> packages = PackageHelper.getPackages(pattern);
+		
+			for(String pkg : packages)
+			{
+				Set<Class<?>> entities = PackageHelper.getClasses(pkg, false, new ClassFilter()
+				{				
+					@Override
+					public boolean accept(Class<?> clazz)
+					{
+						if(!BeanHelper.isPublicNotAbstractClass(clazz))
+							return false;
+						if(clazz.getAnnotation(Entity.class) == null)
+							return false;
+						
+						return true;
+					}
+				});
+				
+				for(Class<?> clazz : entities)
+					cfg.addAnnotatedClass(clazz);
+			}
+		}
+		
+		return cfg.configure(configFile).buildSessionFactory();
 	}
 	
 	/**

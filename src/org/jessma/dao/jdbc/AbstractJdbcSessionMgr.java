@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -24,12 +24,14 @@
 
 package org.jessma.dao.jdbc;
 
+import java.io.FileNotFoundException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.jessma.dao.AbstractSessionMgr;
 import org.jessma.dao.SessionMgr;
 import org.jessma.dao.TransIsoLevel;
+import org.jessma.util.GeneralHelper;
 
 
 /**
@@ -39,6 +41,9 @@ import org.jessma.dao.TransIsoLevel;
  */
 public abstract class AbstractJdbcSessionMgr extends AbstractSessionMgr<Connection>
 {
+	/** 获取默认配置文件 */
+	protected abstract String getDefaultConfigFile();
+	
 	/** 获取内部的 {@link Connection} 对象（实际的获取工作由子类实现） 
 	 * @throws SQLException */
 	protected abstract Connection getInternalConnection() throws SQLException;
@@ -180,5 +185,29 @@ public abstract class AbstractJdbcSessionMgr extends AbstractSessionMgr<Connecti
 				throw new JdbcException(e);
 			}
 		}
+	}
+	
+	protected void parseConfigFile(String configFile) throws FileNotFoundException
+	{
+		this.configFile = GeneralHelper.getClassResourcePath(	AbstractJdbcSessionMgr.class, 
+																GeneralHelper.isStrNotEmpty(configFile) ? 
+																configFile : getDefaultConfigFile());
+		if(this.configFile == null)
+			throw new FileNotFoundException(String.format("config file '%s' not found", configFile));
+	}
+	
+	protected boolean isXmlConfigFile()
+	{
+		final String PROPS_FILE_SUFFIX = ".properties";
+		
+		int index = configFile.lastIndexOf('.');
+		if(index != -1)
+		{
+			String suffix = configFile.substring(index);
+			if(suffix.equalsIgnoreCase(PROPS_FILE_SUFFIX))
+				return false;
+		}
+
+		return true;
 	}
 }

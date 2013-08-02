@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -29,6 +29,7 @@ import java.io.Reader;
 import java.security.InvalidParameterException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
 
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.Configuration;
@@ -40,7 +41,10 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.jessma.dao.AbstractSessionMgr;
 import org.jessma.dao.SessionMgr;
 import org.jessma.dao.TransIsoLevel;
+import org.jessma.util.BeanHelper;
 import org.jessma.util.GeneralHelper;
+import org.jessma.util.PackageHelper;
+import org.jessma.util.PackageHelper.ClassFilter;
 
 
 /**
@@ -57,6 +61,8 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 	private String environment	= DEFAULT_ENVIRONMENT;
 	/** Sql Session Factory 工厂对象 */
 	private SqlSessionFactory sessionFactory;
+	/** SQL Mapper 接口包名正则表达式 */
+	private String pattern;
 	/** Session 对象的 auto commit 属性  */
 	private final ThreadLocal<Boolean> localAutoCommit			= new ThreadLocal<Boolean>();
 	/** Session 对象的 executor type 属性  */
@@ -66,7 +72,8 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 	 * 初始化 
 	 * 
 	 * @param args <br>	[0]	: mybatis_cfg_file （默认：{@link MyBatisSessionMgr#DEFAULT_CONFIG_FILE}）<br>
-	 * 					[1]	: environment （默认：{@link MyBatisSessionMgr#DEFAULT_ENVIRONMENT}）
+	 * 					[1]	: environment （默认：{@link MyBatisSessionMgr#DEFAULT_ENVIRONMENT}）<br>
+	 * 					[2]	: pattern （SQL Mapper 接口包名正则表达式，用于自动扫描 SQL Mapper 接口）
 	 * @throws InvalidParameterException
 	 * @throws SqlSessionException
 	 * 
@@ -80,6 +87,8 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 			initialize(args[0]);
 		else if(args.length == 2)
 			initialize(args[0], args[1]);
+		else if(args.length == 3)
+			initialize(args[0], args[1], args[2]);
 		else
 			throw new InvalidParameterException("MyBatisSessionMgr initialize fail (invalid paramers)");
 	}
@@ -93,7 +102,7 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 	 */
 	public void initialize()
 	{
-		initialize(DEFAULT_CONFIG_FILE, DEFAULT_ENVIRONMENT);
+		initialize(DEFAULT_CONFIG_FILE);
 	}
 
 	/**
@@ -120,8 +129,23 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 	 */
 	public void initialize(String mybatis_cfg_file, String env)
 	{
+		initialize(mybatis_cfg_file, env, null);
+	}
+	
+	/**
+	 * 
+	 * 使用特定的 MyBatis 配置文件和特定配置环境配置 Session Factory，并自动扫描特定包下的 SQL Mapper 接口
+	 * 
+	 * @param mybatis_cfg_file		: 配置文件路径 
+	 * @param env					: 配置环境名称 
+	 * @throws SqlSessionException	: 配置失败时抛出该异常
+	 * 
+	 */
+	public void initialize(String mybatis_cfg_file, String env, String packages)
+	{
 		configFile	= GeneralHelper.isStrNotEmpty(mybatis_cfg_file) ? mybatis_cfg_file : DEFAULT_CONFIG_FILE;
 		environment	= GeneralHelper.isStrNotEmpty(env) ? env : DEFAULT_ENVIRONMENT;
+		pattern		= packages;
 		
 		try
 		{
@@ -256,6 +280,34 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 				{
 					Reader reader	= Resources.getResourceAsReader(configFile);
 					sessionFactory	= new SqlSessionFactoryBuilder().build(reader, environment);
+					
+					if(GeneralHelper.isStrNotEmpty(pattern))
+					{
+						Set<String> packages = PackageHelper.getPackages(pattern);
+					
+						for(String pkg : packages)
+						{
+							Set<Class<?>> entities = PackageHelper.getClasses(pkg, false, new ClassFilter()
+							{				
+								@Override
+								public boolean accept(Class<?> clazz)
+								{
+									if(!BeanHelper.isPublicInterface(clazz))
+										return false;
+									
+									return true;
+								}
+							});
+							
+							Configuration cfg = sessionFactory.getConfiguration();
+							
+							for(Class<?> clazz : entities)
+							{
+								if(!cfg.hasMapper(clazz))
+									cfg.addMapper(clazz);
+							}
+						}
+					}
 				}
 				catch(IOException e)
 				{

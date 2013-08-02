@@ -32,6 +32,7 @@
 		</environment>
 	</environments>
 	<mappers>
-		<mapper resource="vo/mapper/UserMapper.xml" />
+		<!-- MyBatisSessionMgr 设置了自动扫描 SQL Mapper，不需要下面的 Mapper 配置 -->
+		<!-- <mapper resource="vo/mapper/UserMapper.xml" /> -->
 	</mappers>
 </configuration>

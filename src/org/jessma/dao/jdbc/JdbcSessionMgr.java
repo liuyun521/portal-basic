@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -57,12 +57,17 @@ public class JdbcSessionMgr extends AbstractJdbcSessionMgr
 	private Properties info;
 	private String url;
 	
+	@Override
+	protected String getDefaultConfigFile()
+	{
+		return DEFAULT_CONFIG_FILE;
+	}
+	
 	/** 
 	 * 初始化 
 	 * 
 	 * @param args <br>
 	 * 			[0]	: configFile （默认：{@link JdbcSessionMgr#DEFAULT_CONFIG_FILE}） <br>
-	 * 			[1]	: isXml （默认：true） <br>
 	 * @throws InvalidParameterException
 	 * @throws JdbcException
 	 * 
@@ -74,11 +79,6 @@ public class JdbcSessionMgr extends AbstractJdbcSessionMgr
 			initialize();
 		else if(args.length == 1)
 			initialize(args[0]);
-		else if(args.length == 2)
-		{
-			boolean isXml = !"false".equalsIgnoreCase(args[1]);
-			initialize(args[0], isXml);
-		}
 		else
 			throw new InvalidParameterException("JdbcSessionMgr initialize fail (invalid paramers)");
 	}
@@ -92,20 +92,13 @@ public class JdbcSessionMgr extends AbstractJdbcSessionMgr
 	/** 初始化 */
 	public void initialize(String configFile)
 	{
-		initialize(configFile, true);
-	}
-	
-	/** 初始化 */
-	public void initialize(String configFile, boolean isXml)
-	{
 		try
 		{
-			this.configFile  = GeneralHelper.getClassResourcePath(	JdbcSessionMgr.class, 
-																	GeneralHelper.isStrNotEmpty(configFile) ? 
-																	configFile : DEFAULT_CONFIG_FILE);
+			parseConfigFile(configFile);
+			
 			Properties props = new Properties();
 			
-			if(isXml)
+			if(isXmlConfigFile())
     			loadXmlCfg(props);
     		else
     			loadPropCfg(props);

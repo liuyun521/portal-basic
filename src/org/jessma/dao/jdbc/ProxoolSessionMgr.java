@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.1
+ * Version	: JessMA 3.2.2
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -29,7 +29,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import org.jessma.util.GeneralHelper;
 import org.logicalcobwebs.proxool.ProxoolException;
 import org.logicalcobwebs.proxool.ProxoolFacade;
 import org.logicalcobwebs.proxool.configuration.JAXPConfigurator;
@@ -52,13 +51,18 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 
 	private String connectionId;
 	
+	@Override
+	protected String getDefaultConfigFile()
+	{
+		return DEFAULT_CONFIG_FILE;
+	}
+	
 	/** 
 	 * 初始化 
 	 * 
 	 * @param args <br>
 	 *			[0]	: connectionId （默认：{@link ProxoolSessionMgr#DEFAULT_CONNECTION_ID}） <br>
 	 * 			[1]	: configFile （默认：{@link ProxoolSessionMgr#DEFAULT_CONFIG_FILE}） <br>
-	 * 			[2]	: isXml （默认：true） <br>
 	 * @throws InvalidParameterException
 	 * @throws JdbcException
 	 * 
@@ -72,11 +76,6 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 			initialize(args[0]);
 		else if(args.length == 2)
 			initialize(args[0], args[1]);
-		else if(args.length == 3)
-		{
-			boolean isXml = !"false".equalsIgnoreCase(args[2]);
-			initialize(args[0], args[1], isXml);
-		}
 		else
 			throw new InvalidParameterException("ProxoolSessionMgr initialize fail (invalid paramers)");
 	}
@@ -96,12 +95,6 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 	/** 初始化 */
 	public void initialize(String connectionId, String configFile)
 	{
-		initialize(connectionId, configFile, true);
-	}
-	
-	/** 初始化 */
-	public void initialize(String connectionId, String configFile, boolean isXml)
-	{
 		try
 		{
 			if(connectionId != null)
@@ -114,11 +107,9 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 			else
 				this.connectionId = DEFAULT_CONNECTION_ID;
 			
-			this.configFile = GeneralHelper.getClassResourcePath(	ProxoolSessionMgr.class,
-																	GeneralHelper.isStrNotEmpty(configFile) ?
-																	configFile : DEFAULT_CONFIG_FILE);
+			parseConfigFile(configFile);
         		
-    		if(isXml)
+    		if(isXmlConfigFile())
     			JAXPConfigurator.configure(this.configFile, false);
     		else
     			 PropertyConfigurator.configure(this.configFile);
