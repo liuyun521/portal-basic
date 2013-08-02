@@ -22,12 +22,13 @@
 
 2、org.jessma.dao.mybatis.MyBatisSessionMgr 支持自动扫描 SQL Mapper 接口：
 	1) 不必在 mybatis.cfg.xml 中配置 ‘mapper’
-	2) app-config.xml 中配置 MyBatisSessionMgr 时，用第二个可选参数以正则表达式的格式指定 SQL Mapper 接口所在包
+	2) app-config.xml 中配置 MyBatisSessionMgr 时，用第三个可选参数以正则表达式的格式指定 SQL Mapper 接口所在包
 	
 		（例如：SQL Mapper 接口位于 ‘com.bruce.<任意子包>.mapper’ 中）
 		
 		<manager name="mgr-2" class="org.jessma.dao.mybatis.MyBatisSessionMgr">
 			<initialize-args>
+				<arg></arg>
 				<arg></arg>
 				<arg>com\.bruce\..+\.mapper</arg>
 			</initialize-args>
