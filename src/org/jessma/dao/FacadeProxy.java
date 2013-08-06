@@ -30,16 +30,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.jessma.util.BeanHelper;
-import org.jessma.util.CoupleKey;
-import org.jessma.util.GeneralHelper;
-
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.CallbackFilter;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 import net.sf.cglib.proxy.NoOp;
+
+import org.jessma.util.BeanHelper;
+import org.jessma.util.CoupleKey;
+import org.jessma.util.GeneralHelper;
 
 /**
  * 
@@ -319,17 +319,6 @@ public class FacadeProxy
 	/**
 	 * 
 	 * 获取 daoClass 的代理对象。
-	 * 其中，{@link SessionMgr} 的名称由 mgr 指定。
-	 * 
-	 * @param daoClass		: 被代理的数据库访问类对象
-	 * @param mgrName		: app-config.xml 中 {@link SessionMgr} 的名称 
-	 * @return				     与 daoClass 有相同接口的代理对象
-	 * 
-	 */
-
-	/**
-	 * 
-	 * 获取 daoClass 的代理对象。
 	 * 其中，{@link SessionMgr} 由 mgr 指定。
 	 * 
 	 * @param daoClass		: 被代理的数据库访问类对象
@@ -382,4 +371,74 @@ public class FacadeProxy
 		}
 	}
 
+	/* **************************************************************************************************** */
+	//											自定义事务执行方法												//
+	/* **************************************************************************************************** */
+
+	/**
+	 * 执行自定义事务（使用默认的事务隔离级别）<br>
+	 * JessMA 的事务是 DAO 层事务，也就是说当外部调用某个 DAO 方法时，该方法作为一个事务单元执行。
+	 * 但在一些特殊情形下可能需要在 DAO 外部执行 Service 层事务（例如：事务需要调用多个 DAO 对象的多个方法），
+	 * 此时需要创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy
+	 * 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
+	 * <ul>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 只能在 DAO 方法外部调用</li>
+	 * <li>{@linkplain CustomTransaction} 的事务入口方法  {@linkplain CustomTransaction#execute(SessionMgr) execute(SessionMgr)} 作为一个事务单元</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中创建的所有 DAO 对象必须使用同一个 {@linkplain SessionMgr}</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中不能使用 {@linkplain FacadeProxy} 的代理方法（create() / getXxxCommitProxy()）创建 DAO 对象，必须用 new 或其他方式直接创建的 DAO 对象</li>
+	 * </ul>
+	 * 
+	 * @param mgr			: {@link SessionMgr}
+	 * @param trans			: 自定义事务 
+	 * 
+	 */
+	public static final <M extends SessionMgr<S>, S> void executeCustomTransaction(M mgr, CustomTransaction<M, S> trans) throws DAOException
+	{
+		executeCustomTransaction(mgr, TransIsoLevel.DEFAULT, trans);
+	}
+	
+	/**
+	 * 执行自定义事务<br>
+	 * JessMA 的事务是 DAO 层事务，也就是说当外部调用某个 DAO 方法时，该方法作为一个事务单元执行。
+	 * 但在一些特殊情形下可能需要在 DAO 外部执行 Service 层事务（例如：事务需要调用多个 DAO 对象的多个方法），
+	 * 此时需要创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy
+	 * 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
+	 * <ul>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 只能在 DAO 方法外部调用</li>
+	 * <li>{@linkplain CustomTransaction} 的事务入口方法  {@linkplain CustomTransaction#execute(SessionMgr) execute(SessionMgr)} 作为一个事务单元</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中创建的所有 DAO 对象必须使用同一个 {@linkplain SessionMgr}</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中不能使用 {@linkplain FacadeProxy} 的代理方法（create() / getXxxCommitProxy()）创建 DAO 对象，必须用 new 或其他方式直接创建的 DAO 对象</li>
+	 * </ul>
+	 * 
+	 * @param mgr			: {@link SessionMgr}
+	 * @param level			: 事务隔离级别 
+	 * @param trans			: 自定义事务 
+	 * 
+	 */
+	public static final <M extends SessionMgr<S>, S> void executeCustomTransaction(M mgr, TransIsoLevel level, CustomTransaction<M, S> trans) throws DAOException
+	{
+		TransIsoLevel defLevel	= mgr.getDefalutTransIsoLevel();
+		boolean alterTransLevel	= (level != TransIsoLevel.DEFAULT && level != defLevel);
+		
+    	try
+    	{
+    		if(alterTransLevel)
+    			mgr.setSessionTransIsoLevel(level);
+    		
+    		mgr.beginTransaction();
+    		trans.execute(mgr);
+    		mgr.commit();
+    	}
+    	catch(Exception e)
+    	{
+    		{try{mgr.rollback();} catch (Exception ex) {}}
+    		throw new DAOException(e);
+    	}
+    	finally
+    	{
+    		if(alterTransLevel) try {mgr.setSessionTransIsoLevel(defLevel);} catch (Exception ex) {}
+    		try {mgr.closeSession();} catch (Exception ex) {}
+    	}
+	}
+	
 }
