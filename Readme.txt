@@ -4,6 +4,22 @@
 2、文件上传功能则需要 2 个依赖包：commons-fileupload-x.x.x.jar、commons-io-x.x.x.jar
 3、其他依赖包均为可选依赖包，可根据需要加入到项目中
 
+HelloJessMA 模板工程部署：
+-----------------------------------------------
+
+*** 部署环境 ***
+
+JRE/JDK	：JRE/JDK 1.6 以上
+JavaEE	：JavaEE 6 以上
+Tomcat	：Tomcat 6 以上
+
+*** 部署步骤 ***
+
+1、把 HelloJessMA 项目加入 MyEclipse 的 Workspace
+2、把 HelloJessMA 发布到 tomcat（默认发布目录为 hello）
+3、启动 tomcat，检查启动日志，确保没有异常
+4、访问：http://localhost:8080/hello
+
 MyJessMA 测试工程部署：
 -----------------------------------------------
 

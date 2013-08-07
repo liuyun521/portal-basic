@@ -72,12 +72,35 @@
 				}});
 		}
 
-5、其它更新：
+5、扩大 mvc-confing.xml 中 <result-path-aliases> 别名配置应用范围：
+	1) 支持在 <result-path-aliases> 配置中引用前面定义的别名
+	
+		（示例：下面配置中 ${index} 的实际路径为 '/jsp/test/index.jsp'）
+		
+		<result-path-aliases>
+			<alias name="jsp_base" path="/jsp/test"/>
+			<alias name="index" path="${jsp_base}/index.jsp"/>
+		</result-path-aliases>
+
+	2) 允许在 <action-convention> 的 'dispatch-file-path' 和 'dispatch-file-path' 配置中使用别名
+	
+		（示例：下面配置中 'dispatch-file-path' 的实际路径为 '/jsp'）
+		
+		<action-convention
+			dispatch-file-path="${ac_path}"
+			<!-- 其它配置（略）... -->
+		/>
+		<result-path-aliases>
+			<alias name="ac_path" path="/jsp"/>
+		</result-path-aliases>
+
+6、其它更新：
 	1) 修改 org.jessma.util.PackageHelper，加入包扫描相关方法
 	2) 依赖库 “jessma-lib” 中的所有 jar 包更新到最新版本
-	3) 更新开发手册《JessMA 高效 Java MVC & REST 开发框架 (v3.2)》
+	3) 更新开发手册《JessMA 高效 Java MVC & REST 开发框架 (v3.2.2)》
+	4) 增加一个 JessMA 项目模板工程：HelloJessMA
 
-6、应用程序升级说明：
+7、应用程序升级说明：
 	1) JessMA 3.2.1 升级到 JessMA 3.2.2：完全兼容，可直接升级
 	2) Portal-Basic 3.1.1 及更早版本升级到 JessMA 3.2.2：（参考 JessMA 3.2.1 的升级说明）
 
