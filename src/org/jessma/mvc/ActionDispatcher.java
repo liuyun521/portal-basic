@@ -297,10 +297,6 @@ public class ActionDispatcher implements Filter
 				}
 			}
 			
-			Element acConv = global.element(ACTION_CONV_KEY);
-			if(acConv != null)
-				parseActionConvention(acConv);
-			
 			Element acFilters = global.element(ACTION_FILTERS_KEY);
 			if(acFilters != null)
 				parseActionFilters(acFilters);
@@ -308,6 +304,10 @@ public class ActionDispatcher implements Filter
 			Element rsPathAliases = global.element(RESULT_PATH_ALIASES_KEY);
 			if(rsPathAliases != null)
 				parseResultPathAliases(rsPathAliases);
+			
+			Element acConv = global.element(ACTION_CONV_KEY);
+			if(acConv != null)
+				parseActionConvention(acConv);
 			
 			Element gResults = global.element(GLOBAL_RESULTS_KEY);
 			if(gResults != null)
@@ -334,8 +334,8 @@ public class ActionDispatcher implements Filter
 		convention.enable		= GeneralHelper.str2Boolean(enable, true);
 		convention.detect		= GeneralHelper.str2Boolean(detect, true);
 		convention.basePackage	= GeneralHelper.safeString(basePkg);	
-		convention.dispatchPath = HttpHelper.ensurePath(dispatchPath, CONV_DEFAULT_DISPATCH_FILE_PATH);
-		convention.physicalPath = HttpHelper.ensurePath(physicalPath, convention.dispatchPath);
+		convention.dispatchPath = parseResultPath(HttpHelper.ensurePath(dispatchPath, CONV_DEFAULT_DISPATCH_FILE_PATH));
+		convention.physicalPath = parseResultPath(HttpHelper.ensurePath(physicalPath, convention.dispatchPath));
 		
 		if(GeneralHelper.isStrNotEmpty(fileType))
 			convention.fileType = fileType;
@@ -401,7 +401,7 @@ public class ActionDispatcher implements Filter
 			if(path == null)
 				throw new RuntimeException("parse result path alias fail ('path' attribute must be set)");
 			
-			resultAliasMap.put(name, path);
+			resultAliasMap.put(name, parseResultPath(path));
 		}
 	}
 
@@ -569,7 +569,7 @@ public class ActionDispatcher implements Filter
 	
 	private String parseResultPath(String path)
 	{
-		if(GeneralHelper.isStrEmpty(path) || resultAliasMap.isEmpty())
+		if(GeneralHelper.isStrEmpty(path))
 			return path;
 		
 		boolean isOK	 = true;

@@ -23,7 +23,7 @@
 			enable="true"
 			detect-physical-file="true"
 			action-base-package="action"
-			dispatch-file-path="/jsp"
+			dispatch-file-path="${jsp-base}"
 			dispatch-file-type="jsp"
 			physical-file-path=""
 			file-name-separator="_"
@@ -42,8 +42,9 @@
 		
 		<!-- 设置 Action Result 路径的全局别名 -->
 		<result-path-aliases>
-			<alias name="index" path="/jsp/index.jsp"/>
-			<alias name="jsp-path" path="/jsp/test"/>
+			<alias name="jsp-base" path="/jsp"/>
+			<alias name="index" path="${jsp-base}/index.jsp"/>
+			<alias name="jsp-path" path="${jsp-base}/test"/>
 			<alias name="ftl-path" path="/ftl/test"/>
 		</result-path-aliases>
 		
