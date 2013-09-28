@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -203,13 +203,13 @@ public class SpringInjectFilter implements ActionFilter
 		Method setter			= BeanHelper.getPropertyWriteMethod(pd);
 		
 		if(setter != null)
-				springAttr.property = pd;
+			springAttr.property = pd;
 		else
 		{							
 			Field field = BeanHelper.getInstanceFiledByName(actionClass, stopClass, springAttr.attr);
 			
 			if(field != null)
-					springAttr.field = field;
+				springAttr.field = field;
 		}
 		
 		if(springAttr.property == null && springAttr.field == null)

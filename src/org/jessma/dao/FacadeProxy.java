@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -25,7 +25,6 @@
 package org.jessma.dao;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -219,40 +218,37 @@ public class FacadeProxy
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static final Object intercept(Object dao, Method method, Object[] args, MethodProxy proxy, boolean autoCommit, TransIsoLevel transLevel) throws Throwable
+	private static final Object intercept(Object dao, Method method, Object[] args, MethodProxy proxy, SessionMgr<?> mgr, boolean autoCommit, TransIsoLevel transLevel) throws Throwable
 	{
-		Object result			= null;
-		AbstractFacade facade	= (AbstractFacade)dao;
-		
-		if(facade.isInvoking())
+		Object result = null;
+
+		if(mgr.isInvoking())
 			result = proxy.invokeSuper(dao, args);
 		else
 		{
-			facade.setInvoking(true);
+			mgr.setInvoking(true);
 			
-			SessionMgr manager		= facade.getManager();
-			TransIsoLevel defLevel	= manager.getDefalutTransIsoLevel();
+			TransIsoLevel defLevel	= mgr.getDefalutTransIsoLevel();
 			boolean alterTransLevel	= (!autoCommit && transLevel != TransIsoLevel.DEFAULT && transLevel != defLevel);
 			
         	try
         	{
-        		if(alterTransLevel)	manager.setSessionTransIsoLevel(transLevel);
-        		if(!autoCommit)		manager.beginTransaction();
+        		if(alterTransLevel)	mgr.setSessionTransIsoLevel(transLevel);
+        		if(!autoCommit)		mgr.beginTransaction();
         		result = proxy.invokeSuper(dao, args);
-        		if(!autoCommit)		manager.commit();
+        		if(!autoCommit)		mgr.commit();
         	}
         	catch(Exception e)
         	{
-        		if(!autoCommit) {try{manager.rollback();} catch (Exception ex) {}}
+        		if(!autoCommit) {try{mgr.rollback();} catch (Exception ex) {}}
         		throw new DAOException(e);
         	}
         	finally
         	{
-        		if(alterTransLevel) try {manager.setSessionTransIsoLevel(defLevel);} catch (Exception ex) {}
-        		try {manager.closeSession();} catch (Exception ex) {}
+        		if(alterTransLevel) try {mgr.setSessionTransIsoLevel(defLevel);} catch (Exception ex) {}
+        		try {mgr.closeSession();} catch (Exception ex) {}
         		
-        		facade.setInvoking(false);
+        		mgr.setInvoking(false);
         	}
 		}
 
@@ -270,12 +266,16 @@ public class FacadeProxy
 		}
 		
 		@Override
+		@SuppressWarnings("rawtypes")
 		public final Object intercept(Object dao, Method method, Object[] args, MethodProxy proxy) throws Throwable
 		{
-			if(!Modifier.isPublic(method.getModifiers()))
+			AbstractFacade facade	= (AbstractFacade)dao;
+			SessionMgr<?> mgr		= facade.getManager();
+			
+			if(mgr.isInvoking())
 				return proxy.invokeSuper(dao, args);
 
-			return FacadeProxy.intercept(dao, method, args, proxy, transAttr.autoCommit, transAttr.transLevel);
+			return FacadeProxy.intercept(dao, method, args, proxy, mgr, transAttr.autoCommit, transAttr.transLevel);
 		}
 	}
 	
@@ -338,21 +338,25 @@ public class FacadeProxy
 		private static final Map<CoupleKey<Class<?>, Method>, TransAttr> TRANS_ATTR_MAP = new HashMap<CoupleKey<Class<?>, Method>, TransAttr>();
 		
 		@Override
+		@SuppressWarnings("rawtypes")
 		public final Object intercept(Object dao, Method method, Object[] args, MethodProxy proxy) throws Throwable
 		{
-			if(!Modifier.isPublic(method.getModifiers()))
+			AbstractFacade facade	= (AbstractFacade)dao;
+			SessionMgr<?> mgr		= facade.getManager();
+			
+			if(mgr.isInvoking())
 				return proxy.invokeSuper(dao, args);
 			
 			Class<?> superClass = dao.getClass().getSuperclass();
 			CoupleKey<Class<?>, Method> key = new CoupleKey<Class<?>, Method>(superClass, method);
 			
-			checkTransAttrMap(dao, key);
+			checkTransAttrMap(key);
 			
 			TransAttr transAttr = TRANS_ATTR_MAP.get(key);
-			return FacadeProxy.intercept(dao, method, args, proxy, transAttr.autoCommit, transAttr.transLevel);
+			return FacadeProxy.intercept(dao, method, args, proxy, mgr, transAttr.autoCommit, transAttr.transLevel);
 		}
 
-		private static final void checkTransAttrMap(Object dao, CoupleKey<Class<?>, Method> key)
+		private static final void checkTransAttrMap(CoupleKey<Class<?>, Method> key)
 		{
 			if(!TRANS_ATTR_MAP.containsKey(key))
 			{
@@ -372,20 +376,20 @@ public class FacadeProxy
 	}
 
 	/* **************************************************************************************************** */
-	//											自定义事务执行方法												//
+	//											自定义事务执行方法											//
 	/* **************************************************************************************************** */
 
 	/**
-	 * 执行自定义事务（使用默认的事务隔离级别）<br>
+	 * 执行自定义事务<br>
 	 * JessMA 的事务是 DAO 层事务，也就是说当外部调用某个 DAO 方法时，该方法作为一个事务单元执行。
-	 * 但在一些特殊情形下可能需要在 DAO 外部执行 Service 层事务（例如：事务需要调用多个 DAO 对象的多个方法），
-	 * 此时需要创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy
-	 * 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
+	 * 但在一些特殊情形下可能需要在 DAO 方法外部执行事务（例如：作为一个事务单元调用多个 DAO 对象的多个方法），
+	 * 此时可以创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
 	 * <ul>
-	 * <li>FacadeProxy.executeCustomTransaction(...) 只能在 DAO 方法外部调用</li>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 一般在 DAO 方法外部调用</li>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 也可以在 DAO 方法内部调用，但如果调用它的 DAO 方法与它拥有共同的 SessionMgr，则事务属性由该 DAO 方法控制</li>
 	 * <li>{@linkplain CustomTransaction} 的事务入口方法  {@linkplain CustomTransaction#execute(SessionMgr) execute(SessionMgr)} 作为一个事务单元</li>
-	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中创建的所有 DAO 对象必须使用同一个 {@linkplain SessionMgr}</li>
-	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中不能使用 {@linkplain FacadeProxy} 的代理方法（create() / getXxxCommitProxy()）创建 DAO 对象，必须用 new 或其他方式直接创建的 DAO 对象</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中可以用 new 方式直接创建的 DAO 对象，也可以用 {@linkplain FacadeProxy} 的代理方法
+	 * （create() / getXxxCommitProxy()）创建 DAO 对象，无论采用哪种方式创建的 DAO 对象，DAO 对象的事务属性均由 FacadeProxy.executeCustomTransaction(...) 指定</li>
 	 * </ul>
 	 * 
 	 * @param mgr			: {@link SessionMgr}
@@ -400,14 +404,14 @@ public class FacadeProxy
 	/**
 	 * 执行自定义事务<br>
 	 * JessMA 的事务是 DAO 层事务，也就是说当外部调用某个 DAO 方法时，该方法作为一个事务单元执行。
-	 * 但在一些特殊情形下可能需要在 DAO 外部执行 Service 层事务（例如：事务需要调用多个 DAO 对象的多个方法），
-	 * 此时需要创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy
-	 * 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
+	 * 但在一些特殊情形下可能需要在 DAO 方法外部执行事务（例如：作为一个事务单元调用多个 DAO 对象的多个方法），
+	 * 此时可以创建一个自定义事务（{@linkplain CustomTransaction}），并调用 FacadeProxy 的 executeCustomTransaction(...) 来执行该自定义事务。自定义事务执行规则：<br>
 	 * <ul>
-	 * <li>FacadeProxy.executeCustomTransaction(...) 只能在 DAO 方法外部调用</li>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 一般在 DAO 方法外部调用</li>
+	 * <li>FacadeProxy.executeCustomTransaction(...) 也可以在 DAO 方法内部调用，但如果调用它的 DAO 方法与它拥有共同的 SessionMgr，则事务属性由该 DAO 方法控制</li>
 	 * <li>{@linkplain CustomTransaction} 的事务入口方法  {@linkplain CustomTransaction#execute(SessionMgr) execute(SessionMgr)} 作为一个事务单元</li>
-	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中创建的所有 DAO 对象必须使用同一个 {@linkplain SessionMgr}</li>
-	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中不能使用 {@linkplain FacadeProxy} 的代理方法（create() / getXxxCommitProxy()）创建 DAO 对象，必须用 new 或其他方式直接创建的 DAO 对象</li>
+	 * <li>{@linkplain CustomTransaction#execute(SessionMgr)} 方法中可以用 new 方式直接创建的 DAO 对象，也可以用 {@linkplain FacadeProxy} 的代理方法
+	 * （create() / getXxxCommitProxy()）创建 DAO 对象，无论采用哪种方式创建的 DAO 对象，DAO 对象的事务属性均由 FacadeProxy.executeCustomTransaction(...) 指定</li>
 	 * </ul>
 	 * 
 	 * @param mgr			: {@link SessionMgr}
@@ -417,28 +421,37 @@ public class FacadeProxy
 	 */
 	public static final <M extends SessionMgr<S>, S> void executeCustomTransaction(M mgr, TransIsoLevel level, CustomTransaction<M, S> trans) throws DAOException
 	{
-		TransIsoLevel defLevel	= mgr.getDefalutTransIsoLevel();
-		boolean alterTransLevel	= (level != TransIsoLevel.DEFAULT && level != defLevel);
-		
-    	try
-    	{
-    		if(alterTransLevel)
-    			mgr.setSessionTransIsoLevel(level);
-    		
-    		mgr.beginTransaction();
-    		trans.execute(mgr);
-    		mgr.commit();
-    	}
-    	catch(Exception e)
-    	{
-    		{try{mgr.rollback();} catch (Exception ex) {}}
-    		throw new DAOException(e);
-    	}
-    	finally
-    	{
-    		if(alterTransLevel) try {mgr.setSessionTransIsoLevel(defLevel);} catch (Exception ex) {}
-    		try {mgr.closeSession();} catch (Exception ex) {}
-    	}
+		if(mgr.isInvoking())
+			trans.execute(mgr);
+		else
+		{
+			mgr.setInvoking(true);
+			
+			TransIsoLevel defLevel	= mgr.getDefalutTransIsoLevel();
+			boolean alterTransLevel	= (level != TransIsoLevel.DEFAULT && level != defLevel);
+			
+	    	try
+	    	{
+	    		if(alterTransLevel)
+	    			mgr.setSessionTransIsoLevel(level);
+	    		
+	    		mgr.beginTransaction();
+	    		trans.execute(mgr);
+	    		mgr.commit();
+	    	}
+	    	catch(Exception e)
+	    	{
+	    		{try{mgr.rollback();} catch (Exception ex) {}}
+	    		throw new DAOException(e);
+	    	}
+	    	finally
+	    	{
+	    		if(alterTransLevel) try {mgr.setSessionTransIsoLevel(defLevel);} catch (Exception ex) {}
+	    		try {mgr.closeSession();} catch (Exception ex) {}
+	    		
+	    		mgr.setInvoking(false);
+	    	}
+		}
 	}
 	
 }

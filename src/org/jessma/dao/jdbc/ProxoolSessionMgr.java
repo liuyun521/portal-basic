@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -142,6 +142,10 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 		catch(ProxoolException e)
 		{
 			throw new JdbcException(String.format("ProxoolSessionMgr uninitialize fail (%s)", e));
+		}
+		finally
+		{
+			super.unInitialize();
 		}
 	}
 	

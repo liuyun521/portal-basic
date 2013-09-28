@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -49,9 +49,9 @@ public interface SessionMgr<S>
 	void rollback();
 	/** 关闭数据库连接对象 */
 	void closeSession();
-	/** 获取当前线程相关的数据库连接对象，如果不存在则创建并返回新对象 */
+	/** 获取数据库连接对象，如果不存在则创建并返回新对象 */
 	S getSession();
-	/** 获取当前线程相关的数据库连接对象，如果不存在则返回 null */
+	/** 获取数据库连接对象，如果不存在则返回 null */
 	S currentSession();
 	/** 获取当前配置文件 */
 	String getConfigFile();
@@ -59,4 +59,8 @@ public interface SessionMgr<S>
 	TransIsoLevel getDefalutTransIsoLevel();
 	/** 设置当前线程相关的数据库连接对象的事务级别 */
 	void setSessionTransIsoLevel(final TransIsoLevel level);
+	/** 检查 {@link SessionMgr} 是否正在执行 */
+	boolean isInvoking();
+	/** 设置 {@link SessionMgr} 的执行状态 */
+	void setInvoking(boolean value);
 }

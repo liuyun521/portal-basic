@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -54,7 +54,8 @@ public class BeanHelper
 	/** 基本类型包装类集合 */
 	public static final Set<Class<?>> WRAPPER_CLASS_SET	= new HashSet<Class<?>>(8);
 
-	private static final String STRING_DELIMITERS = " ,;|\t\n\r\f";
+	private static final String STRING_DELIMITERS		= " ,;|\t\n\r\f";
+	private static final char ATTR_SEP_CHAR				= '.';
 	
 	static
 	{
@@ -182,6 +183,28 @@ public class BeanHelper
 		}
 		
 		return false;
+	}
+	
+	/** 检查属性是否可以联级装配 */
+	public static final boolean isCascadableProperty(PropertyDescriptor pd)
+	{
+		return (pd != null && getPropertyWriteMethod(pd) != null && isCascadable(pd.getPropertyType()));
+	}
+	
+	/** 检查成员变量是否可以联级装配 */
+	public static final boolean isCascadableField(Field f)
+	{
+		return (f != null && isInstanceNotFinalField(f) && isCascadable(f.getType()));
+	}
+	
+	/** 检查类是否可以联级装配 */
+	public static final boolean isCascadable(Class<?> clazz)
+	{
+		return	isPublicNotAbstractClass(clazz)				&&
+				!isSimpleType(clazz)						&&
+				!clazz.isArray()							&&
+				!Collection.class.isAssignableFrom(clazz)	&&
+				!Map.class.isAssignableFrom(clazz)			;
 	}
 	
 	/** 创建指定类型的 Java Bean，并设置相关属性或成员变量
@@ -354,17 +377,30 @@ public class BeanHelper
 		if(properties == null || properties.isEmpty())
 			return;
 		
+		Map<Object, Map<String, T>> subs	= new HashMap<Object, Map<String, T>>();
 		Map<String, PropertyDescriptor> pps = getPropDescMap(bean.getClass());
 		Map<String, T> params				= translateKVMap(properties, keyMap);
-		Set<Map.Entry<String, T>> set		= params.entrySet();
+
+		parseCascadeProperties(bean, subs, pps, params, null);
 		
-		for(Map.Entry<String, T> e : set)
+		if(!subs.isEmpty())
 		{
-			String key	= e.getKey();
-			T value		= e.getValue();
-		
-			PropertyDescriptor pd = pps.get(key);
-			setProperty(bean, pd, value);
+			Set<Map.Entry<Object, Map<String, T>>> sset = subs.entrySet();
+			for(Map.Entry<Object, Map<String, T>> e : sset)
+			{
+				try
+				{
+					PropertyDescriptor key	= (PropertyDescriptor)e.getKey();
+					Object o				= key.getPropertyType().newInstance();
+					
+					setProperties(o, e.getValue());
+					setProperty(bean, key, o);
+				}
+				catch(Exception ex)
+				{
+					throw new RuntimeException(ex);
+				}
+			}
 		}
 	}
 
@@ -400,17 +436,30 @@ public class BeanHelper
 		if(values == null || values.isEmpty())
 			return;
 		
+		Map<Object, Map<String, T>> subs = new HashMap<Object, Map<String, T>>();
 		Map<String, Field> fms			= getInstanceFieldMap(bean.getClass());
 		Map<String, T> params			= translateKVMap(values, keyMap);
-		Set<Map.Entry<String, T>> set	= params.entrySet();
 		
-		for(Map.Entry<String, T> e : set)
+		parseCascadeFields(bean, subs, fms, params);
+		
+		if(!subs.isEmpty())
 		{
-			String key	= e.getKey();
-			T value		= e.getValue();
-		
-			Field f = fms.get(key);
-			setFieldValue(bean, f, value);
+			Set<Map.Entry<Object, Map<String, T>>> sset = subs.entrySet();
+			for(Map.Entry<Object, Map<String, T>> e : sset)
+			{
+				try
+				{
+					Field key	= (Field)e.getKey();
+					Object o	= key.getType().newInstance();
+					
+					setFieldValues(o, e.getValue());
+					setFieldValue(bean, key, o);
+				}
+				catch(Exception ex)
+				{
+					throw new RuntimeException(ex);
+				}
+			}
 		}
 	}
 	
@@ -446,23 +495,123 @@ public class BeanHelper
 		if(valueMap == null || valueMap.isEmpty())
 			return;
 		
+		Map<Object, Map<String, T>> subs	= new HashMap<Object, Map<String, T>>();
 		Map<String, PropertyDescriptor> pps = getPropDescMap(bean.getClass());
 		Map<String, T> params				= translateKVMap(valueMap, keyMap);
 		Map<String, T> failParams			= new HashMap<String, T>();
-		Set<Map.Entry<String, T>> set		= params.entrySet();
+		
+		parseCascadeProperties(bean, subs, pps, params, failParams);
+		
+		if(!failParams.isEmpty())
+		{
+			Map<String, Field> fms = getInstanceFieldMap(bean.getClass());
+			parseCascadeFields(bean, subs, fms, failParams);
+		}
+		
+		if(!subs.isEmpty())
+		{
+			Set<Map.Entry<Object, Map<String, T>>> sset = subs.entrySet();
+			for(Map.Entry<Object, Map<String, T>> e : sset)
+			{
+				Object key			 = e.getKey();
+				Map<String, T> value = e.getValue();
+				
+				try
+				{
+					if(key instanceof PropertyDescriptor)
+					{
+						PropertyDescriptor pd	= (PropertyDescriptor)key; 
+						Object o				= pd.getPropertyType().newInstance();
+						
+						setPropertiesOrFieldValues(o, value);
+						setProperty(bean, pd, o);
+					}
+					else
+					{
+						Field f		= (Field)key;
+						Object o	= f.getType().newInstance();
+						
+						setPropertiesOrFieldValues(o, value);
+						setFieldValue(bean, f, o);						
+					}
+				}
+				catch(Exception ex)
+				{
+					throw new RuntimeException(ex);
+				}
+			}
+		}
+	}
+
+	private static <T> void parseCascadeProperties(Object bean, Map<Object, Map<String, T>> subs, Map<String, PropertyDescriptor> pps, Map<String, T> params, Map<String, T> failParams)
+	{
+		Set<Map.Entry<String, T>> set = params.entrySet();
 		
 		for(Map.Entry<String, T> e : set)
 		{
 			String key	= e.getKey();
 			T value		= e.getValue();
+			int index	= key.indexOf(ATTR_SEP_CHAR);
 		
-			PropertyDescriptor pd = pps.get(key);
-			if(!setProperty(bean, pd, value))
-				failParams.put(key, value);
+			if(index == -1)
+			{
+				PropertyDescriptor pd = pps.get(key);
+				
+				if(getPropertyWriteMethod(pd) != null)
+					setProperty(bean, pd, value);
+				else if(failParams != null)
+					failParams.put(key, value);
+			}
+			else
+			{
+				String skey				= key.substring(0, index);
+				PropertyDescriptor pd	= pps.get(skey);
+				
+				if(getPropertyWriteMethod(pd) == null)
+				{
+					if(failParams != null)
+						failParams.put(key, value);
+				}
+				else if(isCascadableProperty(pd))
+				{
+					if(!subs.containsKey(pd))
+						subs.put(pd, new HashMap<String, T>());
+					
+					subs.get(pd).put(key.substring(index + 1), value);
+				}
+			}
 		}
+	}
+
+	private static <T> void parseCascadeFields(Object bean, Map<Object, Map<String, T>> subs, Map<String, Field> fms, Map<String, T> params)
+	{
+		Set<Map.Entry<String, T>> set = params.entrySet();
 		
-		if(!failParams.isEmpty())
-			setFieldValues(bean, failParams);
+		for(Map.Entry<String, T> e : set)
+		{
+			String key	= e.getKey();
+			T value		= e.getValue();
+			int index	= key.indexOf(ATTR_SEP_CHAR);
+			
+			if(index == -1)
+			{
+				Field f = fms.get(key);
+				setFieldValue(bean, f, value);
+			}
+			else
+			{
+				String skey	= key.substring(0, index);
+				Field f		= fms.get(skey);
+				
+				if(isCascadableField(f))
+				{
+					if(!subs.containsKey(f))
+						subs.put(f, new HashMap<String, T>());
+					
+					subs.get(f).put(key.substring(index + 1), value);
+				}
+			}
+		}
 	}
 
 	private static final <T> Map<String, T> translateKVMap(Map<String, T> valueMap, Map<String, String> keyMap)

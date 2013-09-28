@@ -38,6 +38,7 @@
 		-->
 			<filter pattern=".*" class="org.jessma.ext.dao.DaoInjectFilter"/>
 			<filter pattern=".*" class="org.jessma.ext.spring.SpringInjectFilter"/>
+			<filter pattern=".*" class="guice.MyGuiceInjectFilter"/>
 		</action-filters>
 		
 		<!-- 设置 Action Result 路径的全局别名 -->

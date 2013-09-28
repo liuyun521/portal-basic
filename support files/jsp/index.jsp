@@ -50,7 +50,8 @@
     	<li><a href="<c:url value="/test/page/queryInterest.action?gender=0&experience=0" />">测试页面静态化</a></li>
     	<li><a href="test/ftl/queryInterest.action">测试 Freemarker</a></li>
     	<li><a href="test/entry/user.action">测试多入口 Action</a></li>
-    	<li><a href="test/spring/user.action">测试 Spring</a></li>
+    	<li><a href="test/spring/user.action">测试 Spring 整合</a></li>
+    	<li><a href="test/guice/user.action">测试 Guice 整合</a></li>
     	<li><a href="test/conv/user.action">测试 Action Convention</a></li>
     	<li><a href="user">测试 REST Convention - 1</a></li>
     	<li><a href="user-2">测试 REST Convention - 2</a></li>

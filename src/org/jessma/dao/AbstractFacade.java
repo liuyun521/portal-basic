@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -34,7 +34,6 @@ package org.jessma.dao;
 public abstract class AbstractFacade<M extends SessionMgr<S>, S>
 {
 	private M manager;
-	private ThreadLocal<Boolean> invoking = new ThreadLocal<Boolean>();
 	
 	protected AbstractFacade(M mgr)
 	{
@@ -51,15 +50,5 @@ public abstract class AbstractFacade<M extends SessionMgr<S>, S>
 	protected S getSession()
 	{
 		return manager.getSession();
-	}
-		
-	boolean isInvoking()
-	{
-		return Boolean.TRUE.equals(invoking.get());
-	}
-	
-	void setInvoking(boolean value)
-	{
-		invoking.set(value);
 	}
 }

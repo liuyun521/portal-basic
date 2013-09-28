@@ -131,4 +131,19 @@
 		</action>	    
 	</actions>
 	
+	<actions path="/test/guice">
+		<action name="user" class="action.test.GuiceUserAction">
+			<entry name="create">
+				<result type="chain">./user!query</result>
+			</entry>
+			<entry name="delete">
+				<result type="chain">./user!query</result>
+			</entry>
+			<entry name="query" method="findUsers">
+				<result>${jsp-path}/guice/test_user.jsp?fromQueryAction=true</result>
+			</entry>
+			<result>${jsp-path}/guice/test_user.jsp</result>
+		</action>	    
+	</actions>
+	
 </MVC-INCLUDE>

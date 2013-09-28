@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.2
+ * Version	: JessMA 3.2.3
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -167,6 +167,7 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 	public void unInitialize()
 	{
 		sessionFactory = null;
+		super.unInitialize();
 	}
 
 	/** 参考：{@link AbstractSessionMgr#loadDefalutTransIsoLevel()} */
@@ -255,8 +256,8 @@ public class MyBatisSessionMgr extends AbstractSessionMgr<SqlSession>
 			{
 				type = localExecutorType.get();
 				
-        			if(type == null)
-        				type = getDefaultExecutorType();
+    			if(type == null)
+    				type = getDefaultExecutorType();
 			}
 			
 			session = sessionFactory.openSession(type, autoCommit);
