@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -23,6 +23,10 @@
  */
 
 package org.jessma.mvc;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * 
@@ -173,22 +177,28 @@ public interface Action
 	public static interface Constant
 	{
 		/** Request Attribute -> {@link Action} 对象 */
-		String REQ_ATTR_ACTION			= "__action";
+		String REQ_ATTR_ACTION				= "__action";
 		/** Request Attribute -> {@link Exception} 对象 */
-		String REQ_ATTR_EXCEPTION		= "__exception";
+		String REQ_ATTR_EXCEPTION			= "__exception";
 		/** Request Attribute -> 当前请求的 ${__base} */
-		String REQ_ATTR_BASE_PATH		= "__base";
-		/** Session Attribute -> 当前 Session 的 ${__local} */
-		String SES_ATTR_LOCALE			= "__locale";
+		String REQ_ATTR_BASE_PATH			= "__base";
 		/** Application Attribute -> 全局 ${__base} */
-		String APP_ATTR_BASE_PATH		= REQ_ATTR_BASE_PATH;
+		String APP_ATTR_BASE_PATH			= REQ_ATTR_BASE_PATH;
 		/** Application Attribute -> ${__base} 类型（参考：{@link BaseType}}） */
-		String APP_ATTR_BASE_TYPE		= "__base_type";
+		String APP_ATTR_BASE_TYPE			= "__base_type";
 		/** Application Attribute -> Servlet Context 路径 */
-		String APP_ATTR_CONTEXT_PATH	= "__context";
+		String APP_ATTR_CONTEXT_PATH		= "__context";
+		/** Application Attribute -> 应用程序默认 Bundle */
+		String APP_ATTR_DEFAULT_APP_BUNDLE	= "__default_app_bundle";
+		/** Application Attribute -> 验证信息默认 Bundle */
+		String APP_ATTR_DEFAULT_VLD_BUNDLE	= "__default_vld_bundle";
+		/** Session or Request Attribute -> 当前请求或 Session 的 ${__local} */
+		String I18N_ATTR_LOCALE				= "__locale";
 		
-		/** 默认 i18n 资源文件 */
-		String DEFAULT_MSG_RES_FILE		= "res.message-resource";
+		/** 应用程序默认 i18n 资源文件 */
+		String DEFAULT_APP_BUNDLE			= "res.application-message";
+		/** 验证信息默认 i18n 资源文件 */
+		String DEFAULT_VLD_BUNDLE			= "res.validation-message";
 	}
 	
 	/** BASE 类型 */
@@ -244,4 +254,17 @@ public interface Action
 	
 	/** {@link Action} 入口方法 */
 	String execute() throws Exception;
+	
+	/**
+	 * 手工验证方法<br/>
+	 * 如果失败则不执行 Action 入口方法, 并立刻定向到 {@link Action#INPUT} 视图 
+	 */
+	boolean validate();
+	
+	/** 设置 {@link HttpServletRequest} */
+	void setRequest(HttpServletRequest request);
+	/** 设置 {@link HttpServletResponse} */
+	void setResponse(HttpServletResponse response);
+	/** 设置 {@link ServletContext} */
+	void setServletContext(ServletContext servletContext);
 }

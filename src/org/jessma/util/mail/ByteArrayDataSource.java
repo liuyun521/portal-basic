@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -175,11 +175,13 @@ class ByteArrayDataSource implements DataSource
 		}
 	}
 
+	@Override
 	public String getContentType()
 	{
 		return type;
 	}
 
+	@Override
 	public InputStream getInputStream() throws IOException
 	{
 		if (baos == null)
@@ -190,11 +192,13 @@ class ByteArrayDataSource implements DataSource
 		return new ByteArrayInputStream(baos.toByteArray());
 	}
 
+	@Override
 	public String getName()
 	{
 		return name;
 	}
 
+	@Override
 	public OutputStream getOutputStream() throws IOException
 	{
 		baos = new ByteArrayOutputStream();

@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -58,9 +59,19 @@ import java.util.regex.Pattern;
 /** 通用方法帮助类 */
 public class GeneralHelper
 {
+	private static final Pattern PATTERN_NUMERIC	= Pattern.compile("^0$|^\\-?[1-9]+[0-9]*$");
+	private static final Pattern PATTERN_EMAIL_ADDR	= Pattern.compile("^[a-z0-9_\\-]+(\\.[_a-z0-9\\-]+)*@([_a-z0-9\\-]+\\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel)$");
+	private static final Pattern PATTERN_IP_ADDR	= Pattern.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+	private static final Pattern PATTERN_LINK		= Pattern.compile("<a[^>]*href=\\\"[^\\s\\\"]+\\\"[^>]*>[^<]*<\\/a>");
+	private static final Pattern PATTERN_HTTP_URL	= Pattern.compile("^(https?:\\/\\/)?([a-z]([a-z0-9\\-]*\\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel)|(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(\\/[a-z0-9_\\-\\.~]+)*(\\/([a-z0-9_\\-\\.]*)(\\?[a-z0-9+_\\-\\.%=&amp;]*)?)?(#[a-z][a-z0-9_]*)?$");
+	private static final Pattern PATTERN_XML_ESCAPES= Pattern.compile(".*[&|\"|\'|<|>].*");
+	
 	private static final String[] SHORT_DATE_PATTERN 				= {"yyyy-MM-dd", "yyyy/MM/dd", "yyyy\\MM\\dd", "yyyyMMdd"};
 	private static final String[] LONG_DATE_PATTERN 				= {"yyyy-MM-dd HH:mm:ss", "yyyy/MM/dd HH:mm:ss", "yyyy\\MM\\dd HH:mm:ss", "yyyyMMddHHmmss"};
 	private static final String[] LONG_DATE_PATTERN_WITH_MILSEC 	= {"yyyy-MM-dd HH:mm:ss.SSS", "yyyy/MM/dd HH:mm:ss.SSS", "yyyy\\MM\\dd HH:mm:ss.SSS", "yyyyMMddHHmmssSSS"};
+
+	private static final Map<String, Locale> AVAILABLE_LOCALES		= new HashMap<String, Locale>();
+	private static final char[][] XML_ESCAPE_CHARS					= new char[63][];
 	
 	/** 空字符串 */
 	public static final String EMPTY_STRING				= "";
@@ -73,6 +84,30 @@ public class GeneralHelper
 	/** 当前操作系统平台的换行符 */
 	public static final String NEWLINE_CHAR				= IS_WINDOWS_PLATFORM ? "\r\n" : "\n";
 	
+	static
+	{
+		Locale[] locales = Locale.getAvailableLocales();
+		for(Locale locale : locales)
+			AVAILABLE_LOCALES.put(locale.toString(), locale);
+		
+		XML_ESCAPE_CHARS[38] = "&amp;"	.toCharArray();
+		XML_ESCAPE_CHARS[60] = "&lt;"	.toCharArray();
+		XML_ESCAPE_CHARS[62] = "&gt;"	.toCharArray();
+		XML_ESCAPE_CHARS[34] = "&quot;"	.toCharArray();
+		XML_ESCAPE_CHARS[39] = "&apos;"	.toCharArray();
+	}
+	
+	/** 获取系统支持的所有 {@link Locale} */
+	public final static Map<String, Locale> getAvailableLocales()
+	{
+		return AVAILABLE_LOCALES;
+	}
+	
+	/** 获取系统支持的指定名称的 {@link Locale} */
+	public final static Locale getAvailableLocale(String locale)
+	{
+		return AVAILABLE_LOCALES.get(locale);
+	}
 	
 	/** 检查字符串不为 null 或空字符串 */
 	public final static boolean isStrNotEmpty(String str)
@@ -127,31 +162,58 @@ public class GeneralHelper
 	/** 检查字符串是否符合整数格式 */
 	public final static boolean isStrNumeric(String str)
 	{
-		return str.matches("^0$|^\\-?[1-9]+[0-9]*$");
+		return PATTERN_NUMERIC.matcher(str).matches();
 	}
 
 	/** 检查字符串是否符合电子邮件格式 */
 	public final static boolean isStrEmailAddress(String str)
 	{
-		return str.matches("^[a-z0-9_\\-]+(\\.[_a-z0-9\\-]+)*@([_a-z0-9\\-]+\\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel)$");
+		return PATTERN_EMAIL_ADDR.matcher(str).matches();
 	}
 
 	/** 检查字符串是否符合 IP 地址格式 */
 	public final static boolean isStrIPAddress(String str)
 	{
-		return str.matches("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+		return PATTERN_IP_ADDR.matcher(str).matches();
 	}
 
 	/** 检查字符串是否符合 HTML 超链接元素格式 */
 	public final static boolean isStrLink(String str)
 	{
-		return str.matches("<a[^>]*href=\\\"[^\\s\\\"]+\\\"[^>]*>[^<]*<\\/a>");
+		return PATTERN_LINK.matcher(str).matches();
 	}
 
 	/** 检查字符串是否符合 URL 格式 */
 	public final static boolean isStrURL(String str)
 	{
-		return str.matches("^((https?|ftp|news):\\/\\/)?([a-z]([a-z0-9\\-]*\\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel)|(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))(\\/[a-z0-9_\\-\\.~]+)*(\\/([a-z0-9_\\-\\.]*)(\\?[a-z0-9+_\\-\\.%=&amp;]*)?)?(#[a-z][a-z0-9_]*)?$");
+		return PATTERN_HTTP_URL.matcher(str).matches();
+	}
+	
+	/** 置换常见的 XML 特殊字符 */
+	public final static String escapeXML(String str)
+	{
+		if(!PATTERN_XML_ESCAPES.matcher(str).matches())
+			return str;
+		
+		char[] src		 = str.toCharArray();
+		StringBuilder sb = new StringBuilder(src.length);
+		
+		for(char c : src)
+		{
+			if(c > '>' || c < '"')
+				sb.append(c);
+			else
+			{
+				char[] dest = XML_ESCAPE_CHARS[c];
+				
+				if(dest == null)
+					sb.append(c);
+				else
+					sb.append(dest);
+			}
+		}
+		
+		return sb.toString();
 	}
 	
 	/** 屏蔽正则表达式的转义字符（但不屏蔽 ignores 参数中包含的字符） */

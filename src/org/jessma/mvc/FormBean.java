@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -42,5 +42,9 @@ public @interface FormBean
 	 * 1、如果 {@link FormBean#value()} 为空（默认值）则把 {@link Action} 自身作为 Form Bean, 对其进行装配 <br>
 	 * 2、如果 {@link FormBean#value()} 不为空则把名称为 {@link FormBean#value()} 的 {@link Action} 成员属性作为 Form Bean, 对其进行装配 
 	 */
-	String value() default "";
+	String value()		default "";
+	/** 是否执行自动验证 */
+	boolean validate()	default true;
+	/** 验证组 */
+	Class<?>[] groups()	default {};
 }

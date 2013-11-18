@@ -16,6 +16,7 @@
   <body>
     <br>
   	<div align="right" style="font-size: xx-small;">
+  	Version: 3.3 by <a href="http://www.jessma.org">JessMA Open Source</a>&nbsp;<br><br>
   	<a href="test/reload-cfg.action?type=mvc">更新 MVC 配置</a>&nbsp;
   	<a href="test/reload-cfg.action?type=rest">更新 REST 配置</a>&nbsp;
   	<a href="test/reload-cfg.action?type=user">更新用户配置</a>&nbsp;
@@ -32,8 +33,10 @@
     	<li><a href="test/testBean_1.action"><p:msg key="jsp-index.TestBean" p0="1"/></a></li>
     	<li><a href="test/testBean_2.action"><p:msg key="jsp-index.TestBean" p0="2"/></a></li>
     	<li><a href="test/testBean_3.action"><p:msg key="jsp-index.TestBean" p0="3"/></a></li>
+    	<li><a href="test/testBeanValidation.action"><p:msg key="jsp-index.TestBeanValidation"/></a></li>
     	<li><a href="test/testValidate.action"><p:msg key="jsp-index.TestValidate"/></a></li>
-    	<li><a href="test/testI18N.action"><p:msg key="jsp-index.TestI18N"/></a></li>
+    	<li><a href="test/testI18N.action"><p:msg key="jsp-index.TestI18N"  p0="Session"/></a></li>
+    	<li><a href="test/testI18N_Cookie.action"><p:msg key="jsp-index.TestI18N" p0="Cookie"/></a></li>
     	<li><a href="test/testUpload.action">测试文件上传</a></li>
     	<li><a href="test/testDownload.action">测试文件下载</a></li>
     	<li><a href="test/dao/testJdbc.action">测试 DAO (JDBC)</a></li>

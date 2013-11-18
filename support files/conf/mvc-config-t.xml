@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MVC-INCLUDE	xmlns="http://www.jessma.org"
 				xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-				xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/mvc-config-include-3.2.xsd">
+				xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/mvc-config-include-3.3.xsd">
 		
 	<actions path="/test">
 		<action name="testBean_1">
@@ -22,6 +22,9 @@
 		<action name="checkBean_3" class="action.test.CheckBean3">
 			<result>${jsp-path}/bean/result_3.jsp</result>
 		</action>
+		<action name="testBeanValidation">
+			<result>${jsp-path}/bean/test_bean_vld.jsp</result>
+		</action>
 		<action name="testValidate">
 			<result>${jsp-path}/validate/test_validate.jsp</result>
 		</action>
@@ -32,6 +35,9 @@
 		<action name="checkNickName" class="action.test.CheckNickName" />
 		<action name="testI18N" class="action.test.ChangeLocale">
 			<result>${jsp-path}/i18n/change_locale.jsp</result>
+		</action>
+		<action name="testI18N_Cookie" class="action.test.ChangeLocaleByCookie">
+			<result>${jsp-path}/i18n/change_locale_cookie.jsp</result>
 		</action>
 		<action name="testUpload">
 			<result>${jsp-path}/upload/test_upload.jsp</result>

@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -74,10 +74,16 @@ public class ActionExecutor
 	{
 		boolean valid = true;
 		
-		if(action instanceof Validateable)
-			valid = ((Validateable)action).validate();
-		
-		if(!valid) return Action.INPUT;
+		if(action instanceof ActionSupport && ActionSupport.isBeanValidationEnable())
+		{
+			ActionSupport asp = (ActionSupport)action;
+			
+			if(asp.isAutoValidation())
+				valid = asp.validateFormBean();
+		}
+
+		if(valid)	valid = action.validate();
+		if(!valid)	return Action.INPUT;
 		
 		return BeanHelper.invokeMethod(action, method);
 	}

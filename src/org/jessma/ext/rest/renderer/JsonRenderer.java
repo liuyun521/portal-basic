@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -48,7 +48,8 @@ public class JsonRenderer extends XStreamRenderer
 							(
 								new JsonHierarchicalStreamDriver()
 					    		{
-					    			public HierarchicalStreamWriter createWriter(Writer out)
+					    			@Override
+									public HierarchicalStreamWriter createWriter(Writer out)
 					    			{
 					    				return new JsonWriter(out, Format.SPACE_AFTER_LABEL);
 					    			}

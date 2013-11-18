@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -74,12 +74,14 @@ public abstract class AbstractSessionMgr<S> implements SessionMgr<S>
 	}
 	
 	/** 参考：{@link SessionMgr#isInvoking()} */
+	@Override
 	public boolean isInvoking()
 	{
 		return Boolean.TRUE == invoking.get();
 	}
 	
 	/** 参考：{@link SessionMgr#setInvoking(boolean)} */
+	@Override
 	public void setInvoking(boolean value)
 	{
 		invoking.set(Boolean.valueOf(value));

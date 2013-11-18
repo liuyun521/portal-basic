@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -83,13 +83,13 @@ public class ProxoolSessionMgr extends AbstractJdbcSessionMgr
 	/** 初始化 */
 	public void initialize()
 	{
-		initialize((String)null);
+		initialize(DEFAULT_CONFIG_FILE);
 	}
 	
 	/** 初始化 */
 	public void initialize(String connectionId)
 	{
-		initialize(connectionId, null);
+		initialize(connectionId, DEFAULT_CONNECTION_ID);
 	}
 	
 	/** 初始化 */

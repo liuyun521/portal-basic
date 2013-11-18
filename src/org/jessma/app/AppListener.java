@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -49,6 +49,7 @@ public class AppListener implements ServletContextListener
 	
 	private ServletContext context;
 		
+	@Override
 	public void contextInitialized(ServletContextEvent sce)
 	{
 		context = sce.getServletContext();
@@ -90,6 +91,7 @@ public class AppListener implements ServletContextListener
 		}
 	}
 	
+	@Override
 	public void contextDestroyed(ServletContextEvent sce)
 	{
 		try

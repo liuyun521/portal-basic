@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <REST	xmlns="http://www.jessma.org"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/rest-config-3.2.xsd">
+		xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/rest-config-3.3.xsd">
 	<global>
 		<!-- request 和 response 的默认编码（可选，默认：不设置） -->
 		<encoding>UTF-8</encoding>

@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -25,10 +25,15 @@
 package org.jessma.mvc;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.Set;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -39,7 +44,12 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.validation.ConstraintViolation;
 
+import org.jessma.mvc.ActionDispatcher.ActionEntryConfig;
+import org.jessma.mvc.ActionDispatcher.ActionPackage;
+import org.jessma.mvc.ActionDispatcher.BeanValidation;
+import org.jessma.util.GeneralHelper;
 import org.jessma.util.http.HttpHelper;
 
 /**
@@ -47,24 +57,268 @@ import org.jessma.util.http.HttpHelper;
  * {@link Action} 公共基类。
  *
  */
-public class ActionSupport implements Action, ActionContextAware, Validateable, AsyncContextAware
+public class ActionSupport implements Action //, Validateable, ActionContextAware, AsyncContextAware
 {
 	private ServletContext servletContext;
 	private HttpServletRequest request;
 	private HttpServletResponse response;
 
+	private Object formBean;
+	private boolean autoValidation;
+	private Class<?>[] validationGroups;
+	private Map<String, List<String>> errors;
+	
+	private static BeanValidation validation;
+	
+	private static final List<String> NO_ERROR				 = new ArrayList<String>();
+	private static final Map<String, List<String>> NO_ERRORS = new LinkedHashMap<String, List<String>>();
+	
 	/** 默认 {@link Action} 入口方法（返回 {@link Action#SUCCESS}） */
+	@Override
 	public String execute() throws Exception
 	{
 		return SUCCESS;
 	}
 	
-	/** {@link Validateable#validate()} 的默认实现 */
+	/** {@link Action#validate()} 的默认实现 */
 	@Override
 	public boolean validate()
 	{
 		return true;
 	}
+	
+	/** 验证 Form Bean 对象 （框架内部调用）*/
+	final boolean validateFormBean()
+	{
+		return validateBeanAndAddErrors(formBean, validationGroups);
+	}
+	
+	/** 验证 Bean 对象，并把错误信息记录到 Action 的 errors 集合中 */
+	protected final boolean validateBeanAndAddErrors(Object bean, Class<?> ... groups)
+	{
+		boolean valid = true;
+		Set<ConstraintViolation<Object>> set = validateBean(bean, groups);
+		
+		if(!set.isEmpty())
+		{
+			for(ConstraintViolation<?> e : set)
+				addError(e.getPropertyPath().toString(), e.getMessage());
+			
+			valid = false;
+		}
+
+		return valid;
+	}
+	
+	/** 验证 Bean 对象，并返回验证结果集 */
+	protected final Set<ConstraintViolation<Object>> validateBean(Object bean, Class<?> ... groups)
+	{
+		Locale locale = getCurrentLocale();
+		
+		return validation.validator.validate(bean, groups, validation.bundle, locale);
+	}
+	
+	/** 设置 {@link BeanValidation} 对象（框架内部调用）*/
+	static final void setBeanValidation(BeanValidation validation)
+	{
+		ActionSupport.validation = validation;
+	}
+	
+	/** 获取 {@link BeanValidation} 对象（框架内部调用） */
+	static final BeanValidation getBeanValidation()
+	{
+		return validation;
+	}
+	
+	/** 获取 {@link BeanValidator} （Bean 验证器）对象 */
+	protected static final BeanValidator getBeanValidator()
+	{
+		return validation.validator;
+	}
+	
+	/** 检查 Bean Validation 机制是否开启 */
+	protected static final boolean isBeanValidationEnable()
+	{
+		return validation.enable;
+	}
+	
+	/** 设置由 {@link FormBean} 声明的当前入口方法的 Form Bean 对象（框架内部调用）*/
+	final void setFormBean(Object formBean)
+	{
+		this.formBean = formBean;
+	}
+	
+	/** 获取由 {@link FormBean} 声明的当前入口方法的 Form Bean 对象 */
+	protected final Object getFormBean()
+	{
+		return formBean;
+	}
+	
+	/** 设置当前 Action 入口方法是否执行自动验证（框架内部调用）*/
+	final void setAutoValidation(boolean autoValidation)
+	{
+		this.autoValidation = autoValidation;
+	}
+	
+	/** 检查当前 Action 入口方法是否执行自动验证 */
+	protected final boolean isAutoValidation()
+	{
+		return autoValidation;
+	}
+	
+	/** 设置当前 Action 入口方法的自动验证组（框架内部调用）*/
+	final void setValidationGroups(Class<?>[] groups)
+	{
+		this.validationGroups = groups;
+	}
+	
+	/** 获取当前 Action 入口方法的自动验证组 */
+	protected final Class<?>[] getValidationGroups()
+	{
+		return validationGroups;
+	}
+	
+	/** 添加验证错误信息 */
+	public final void addError(String key, String message)
+	{
+		if(errors == null)
+		{
+			synchronized(this)
+			{
+				if(errors == null)
+					errors = new LinkedHashMap<String, List<String>>();
+			}
+		}
+		
+		if(!errors.containsKey(key))
+			errors.put(key, new ArrayList<String>());
+		
+		errors.get(key).add(message);
+	}
+	
+	/** 添加验证错误信息（根据默认 {@link ResourceBundle} 和默认 {@link Locale} 设置内容） */
+	public final void addErrorByResource(String key, String resKey, Object ... params)
+	{
+		Locale locale = getCurrentLocale();
+		String bundle = getDefaultValidationBundle();
+		
+		addErrorByResource(key, resKey, bundle, locale, params);
+	}
+	
+	/** 添加验证错误信息（根据指定 {@link ResourceBundle} 和指定 {@link Locale} 设置内容） */
+	public final void addErrorByResource(String key, String resKey, String bundle, Locale locale, Object ... params)
+	{
+		if(locale == null)
+			locale = getCurrentLocale();
+		if(bundle == null)
+			bundle = getDefaultValidationBundle();
+				
+		String message = GeneralHelper.getResourceMessage(locale, bundle, resKey, params);	
+		addError(resKey, message);
+	}
+	
+	/** 获取指定键的第一条验证错误信息 */
+	public final String getfirstError(String key)
+	{
+		return getError(key, 0);
+	}
+	
+	/** 获取指定键的第 index 条验证错误信息 */
+	public final String getError(String key, int index)
+	{
+		List<String> list = getErrors(key);
+		
+		if(list == null || index >= list.size())
+			return GeneralHelper.EMPTY_STRING;
+		
+		return list.get(index);
+	}
+	
+	/** 获取指定键的验证错误信息列表 */
+	public final List<String> getErrors(String key)
+	{
+		if(errors == null || !errors.containsKey(key))
+			return NO_ERROR;
+		
+		return errors.get(key);
+	}
+	
+	/** 获取所有验证错误信息 */
+	public final Map<String, List<String>> getAllErrors()
+	{
+		if(errors == null)
+			return NO_ERRORS;
+		
+		return errors;
+	}
+	
+	/** 获取默认 bundle 资源的当前 locale 本地化文件中名字为 resKey 的字符串资源，并代入 params 参数 */
+	public final String getResourceMessage(String resKey, Object ... params)
+	{
+		return getResourceMessage(null, null, resKey, params);
+	}
+	
+	/** 获取 bundle 资源的 locale 本地化文件中名字为 resKey 的字符串资源，并代入 params 参数 */
+	public final String getResourceMessage(String bundle, Locale locale, String resKey, Object ... params)
+	{
+		if(locale == null)
+			locale = getCurrentLocale();
+		if(bundle == null)
+			bundle = getDefaultApplicationBundle();
+		
+		return GeneralHelper.getResourceMessage(locale, bundle, resKey, params);
+	}
+	
+	/** 获取默认 Application Bundle */
+	public final String getDefaultApplicationBundle()
+	{
+		String bundle = getApplicationAttribute(Constant.APP_ATTR_DEFAULT_APP_BUNDLE);
+		if(GeneralHelper.isStrEmpty(bundle))
+			bundle = Constant.DEFAULT_APP_BUNDLE;
+
+		return bundle;
+	}
+	
+	/** 获取默认 Validation Bundle */
+	public final String getDefaultValidationBundle()
+	{
+		String bundle = validation.bundle;
+		if(GeneralHelper.isStrEmpty(bundle))
+		{
+			bundle = getApplicationAttribute(Constant.APP_ATTR_DEFAULT_VLD_BUNDLE);
+			if(GeneralHelper.isStrEmpty(bundle))
+				bundle = Constant.DEFAULT_APP_BUNDLE;
+		}
+
+		return bundle;
+	}
+	
+	/** 获取当前请求的实际 {@link Locale} 属性 */
+	public final Locale getCurrentLocale()
+	{
+		Locale locale = getRequestAttribute(Constant.I18N_ATTR_LOCALE);
+		if(locale == null)
+		{
+			locale = getSessionAttribute(Constant.I18N_ATTR_LOCALE);
+			if(locale == null)
+				locale = getRequestLocale();
+		}
+		
+		return locale;
+	}
+	
+	/** 获取客户端 {@link Locale} */
+	public final Locale getRequestLocale()
+	{
+		return HttpHelper.getRequestLocale(request);
+	}
+	
+	/** 获取客户端 {@link Locale} 列表 */
+	public final List<Locale> getRequestLocales()
+	{
+		return HttpHelper.getRequestLocales(request);
+	}
+
 
 	/** 获取 {@link HttpServletRequest} 的指定属性值 */
 	public final <T> T getRequestAttribute(String name)
@@ -381,20 +635,80 @@ public class ActionSupport implements Action, ActionContextAware, Validateable, 
 	/** 获取当前 {@link HttpSession} 的 {@link Locale} 属性 */
 	public final Locale getLocale()
 	{
-		Locale locale = (Locale)getSessionAttribute(Constant.SES_ATTR_LOCALE);
-
-		if(locale == null)
-			locale = Locale.getDefault();
-
-		return locale;
+		return getSessionAttribute(Constant.I18N_ATTR_LOCALE);
 	}
 
 	/** 设置当前 {@link HttpSession} 的 {@link Locale} 属性 */
 	public final void setLocale(Locale locale)
 	{
-		setSessionAttribute(Constant.SES_ATTR_LOCALE, locale);
+		if(locale != null)
+			setSessionAttribute(Constant.I18N_ATTR_LOCALE, locale);
+		else
+			removeSessionAttribute(Constant.I18N_ATTR_LOCALE);
 	}
 	
+	/** 通过 {@link Cookie} 获取当前用户的 {@link Locale} 属性 */
+	public final Locale getLocaleByCookie()
+	{
+		Locale locale	= null;
+		String lc		= getCookieValue(Constant.I18N_ATTR_LOCALE);
+		
+		if(lc != null)
+			locale = GeneralHelper.getAvailableLocale(lc);
+
+		return locale;
+	}
+	
+	/** 通过 {@link Cookie} 设置当前用户的 {@link Locale} 属性 */
+	public final void setLocaleByCookie(Locale locale)
+	{
+		setLocaleByCookie(locale, -1, null, "/", false, false, 0, null);
+	}
+
+	/** 通过 {@link Cookie} 设置当前用户的 {@link Locale} 属性 */
+	public final void setLocaleByCookie(Locale locale, int maxAge)
+	{
+		setLocaleByCookie(locale, maxAge, null, "/", false, false, 0, null);
+	}
+
+	/** 通过 {@link Cookie} 设置当前用户的 {@link Locale} 属性 */
+	public final void setLocaleByCookie(Locale locale, int maxAge, String domain, String path)
+	{
+		setLocaleByCookie(locale, maxAge, domain, path, false, false, 0, null);
+	}
+
+	/** 设置当前 {@link Cookie} 的 {@link Locale} 属性 */
+	public final void setLocaleByCookie(Locale locale, int maxAge, String domain, String path, boolean secure, boolean httpOnly, int version, String comment)
+	{
+		String value	= (locale != null) ? locale.toString() : getRequestLocale().toString();
+		Cookie cookie	= new Cookie(Constant.I18N_ATTR_LOCALE, value);
+
+		if(locale == null)
+			maxAge = 0;
+
+		cookie.setMaxAge(maxAge);
+		cookie.setPath(path);
+		cookie.setSecure(secure);
+		cookie.setVersion(version);
+		cookie.setComment(comment);
+		
+		if(domain != null)
+			cookie.setDomain(domain);
+		
+		try
+		{
+			Method m = Cookie.class.getMethod("setHttpOnly", boolean.class);
+			m.invoke(cookie, httpOnly);
+		} catch(Exception e) {}
+
+		HttpHelper.addCookie(response, cookie);
+		
+		if(locale != null && maxAge != 0)
+			setRequestAttribute(Constant.I18N_ATTR_LOCALE, locale);
+		else
+			removeRequestAttribute(Constant.I18N_ATTR_LOCALE);
+	}
+
 	/** 获取 URL 地址在文件系统的绝对路径,
 	 * 
 	 * Servlet 2.4 以上通过 request.getServletContext().getRealPath() 获取,
@@ -496,23 +810,20 @@ public class ActionSupport implements Action, ActionContextAware, Validateable, 
 	private ActionDispatcher.ActionPackage pkg;
 	private ActionDispatcher.ActionEntryConfig aec;
 	
-	/** 参考：{@link AsyncContextAware#setActionDispatcher(ActionDispatcher)} */
-	@Override
-	public void setActionDispatcher(ActionDispatcher dispatcher)
+	/** 设置 {@link ActionDispatcher} */
+	final void setActionDispatcher(ActionDispatcher dispatcher)
 	{
 		this.dispatcher = dispatcher;
 	}
 	
-	/** 参考：{@link AsyncContextAware#setActionPackage(ActionDispatcher.ActionPackage)} */
-	@Override
-	public void setActionPackage(ActionDispatcher.ActionPackage pkg)
+	/** 设置 {@link ActionPackage} */
+	final void setActionPackage(ActionDispatcher.ActionPackage pkg)
 	{
 		this.pkg = pkg;
 	}
 
-	/** 参考：{@link AsyncContextAware#setActionEntryConfig(ActionDispatcher.ActionEntryConfig)} */
-	@Override
-	public void setActionEntryConfig(ActionDispatcher.ActionEntryConfig aec)
+	/** 设置 {@link ActionEntryConfig} */
+	final void setActionEntryConfig(ActionDispatcher.ActionEntryConfig aec)
 	{
 		this.aec = aec;
 	}

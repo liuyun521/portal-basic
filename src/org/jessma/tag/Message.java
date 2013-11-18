@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -34,13 +34,24 @@ import javax.servlet.jsp.tagext.SimpleTagSupport;
 import org.jessma.mvc.Action;
 import org.jessma.util.GeneralHelper;
 
-
-/** <p:msg> 标签处理类 */
+/** I18N 消息标签类 <br/>
+ * 
+ * <ul>
+ * 	<li>key		- 消息键 </li>
+ * 	<li>res		- 资源 Bundle </li>
+ * 	<li>locale	- 语言区域 </li>
+ * 	<li>escape	- 是否过滤 XML 特殊字符 </li>
+ * 	<li>p0-p9	- 消息参数 </li>
+ * 	<li>params	- 消息参数数组 </li>
+ * </ul>
+ * 
+ */
 public class Message extends SimpleTagSupport
 {
 	private String key;
 	private String res;
-	private Locale locale;
+	private String locale;
+	private boolean escape = true;
 	
 	private Object p0;
 	private Object p1;
@@ -59,16 +70,24 @@ public class Message extends SimpleTagSupport
 	@Override
 	public void doTag() throws JspException, IOException
 	{
-		if(locale == null)
-		{
-			locale = (Locale)getJspContext().getAttribute(Action.Constant.SES_ATTR_LOCALE, PageContext.SESSION_SCOPE);
-			
-			if(locale == null)
-				locale = Locale.getDefault();
-		}
+		PageContext context	= (PageContext)getJspContext();
+		Locale __locale		= null;
 		
-		if(res == null)
-			res = Action.Constant.DEFAULT_MSG_RES_FILE;
+		if(GeneralHelper.isStrEmpty(locale))
+			__locale = (Locale)context.findAttribute(Action.Constant.I18N_ATTR_LOCALE);
+		else
+			__locale = GeneralHelper.getAvailableLocale(locale);
+		
+		if(__locale == null)
+			__locale = context.getRequest().getLocale();
+		
+		if(GeneralHelper.isStrEmpty(res))
+		{
+			res = (String)getJspContext().getAttribute(	Action.Constant.APP_ATTR_DEFAULT_APP_BUNDLE,
+														PageContext.APPLICATION_SCOPE	);	
+			if(res == null)
+				res = Action.Constant.DEFAULT_APP_BUNDLE;
+		}
 		
 		Object[] p = null;
 		
@@ -77,8 +96,9 @@ public class Message extends SimpleTagSupport
 		else
 			p = GeneralHelper.object2Array(params);
 
-		String msg = GeneralHelper.getResourceMessage(locale, res, key, p);
-
+		String msg		= GeneralHelper.getResourceMessage(__locale, res, key, p);
+		if(escape) msg	= GeneralHelper.escapeXML(msg);
+		
 		getJspContext().getOut().print(msg);
 	}
 
@@ -92,11 +112,16 @@ public class Message extends SimpleTagSupport
 		this.res = res;
 	}
 
-	public void setLocale(Locale locale)
+	public void setLocale(String locale)
 	{
 		this.locale = locale;
 	}
-
+	
+	public void setEscape(boolean escape)
+	{
+		this.escape = escape;
+	}
+	
 	public void setP0(Object p0)
 	{
 		this.p0 = p0;

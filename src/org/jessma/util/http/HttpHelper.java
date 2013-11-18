@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -24,6 +24,28 @@
 
 package org.jessma.util.http;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.StringTokenizer;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -34,13 +56,6 @@ import org.jessma.util.BeanHelper;
 import org.jessma.util.CryptHelper;
 import org.jessma.util.GeneralHelper;
 import org.jessma.util.KV;
-
-
-import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.io.*;
-import java.util.*;
 
 /**
  * 
@@ -65,7 +80,7 @@ public class HttpHelper
 	public static final int HTTPS_DEFAULT_PORT			= 443;
 	/** 默认缓冲区大小 */
 	private static final int DEFAULT_BUFFER_SIZE		= 4096;
-	
+
 	private static ServletContext servletContext;
 	
 	/** 获取 {@link ServletContext} */
@@ -96,7 +111,7 @@ public class HttpHelper
 	{
 		HttpHelper.servletContext = null;
 	}
-
+	
 	/** 获取 {@link HttpURLConnection} */
 	public final static HttpURLConnection getHttpConnection(String url, KV<String, String> ... properties) throws IOException
 	{
@@ -302,33 +317,6 @@ public class HttpHelper
 		return sbURL.toString();
 	}
 
-	/** 置换常见的 XML 特殊字符 */
-	public final static String regulateXMLStr(String src)
-	{
-		String result = src;
-		result = result.replaceAll("&", "&amp;");
-		result = result.replaceAll("\"", "&quot;");
-		result = result.replaceAll("'", "&apos;");
-		result = result.replaceAll("<", "&lt;");
-		result = result.replaceAll(">", "&gt;");
-		
-		return result;
-	}
-
-	/** 置换常见的 HTML 特殊字符 */
-	public final static String regulateHtmlStr(String src)
-	{
-		String result = src;
-		result = result.replaceAll("&", "&amp;");
-		result = result.replaceAll("\"", "&quot;");
-		result = result.replaceAll("<", "&lt;");
-		result = result.replaceAll(">", "&gt;");
-		result = result.replaceAll("\r\n", "<br/>");
-		result = result.replaceAll(" ", "&nbsp;");
-		
-		return result;
-	}
-	
 	/** 确保 URL 路径的前后存在 URL 路径分隔符 */
 	public static final String ensurePath(String path, String defPath)
 	{
@@ -695,7 +683,7 @@ public class HttpHelper
 	/** 获取指定名称的 {@link Cookie} */
 	public final static Cookie getCookie(HttpServletRequest request, String name)
 	{
-		Cookie cookie = null;
+		Cookie cookie	 = null;
 		Cookie[] cookies = request.getCookies();
 		
 		if(cookies != null)
@@ -716,8 +704,8 @@ public class HttpHelper
 	/** 获取指定名称的 {@link Cookie} 值，失败返回 null */
 	public final static String getCookieValue(HttpServletRequest request, String name)
 	{
-		String value = null;
-		Cookie cookie = getCookie(request, name);
+		String value	= null;
+		Cookie cookie	= getCookie(request, name);
 		
 		if(cookie != null)
 			value = cookie.getValue();
@@ -735,6 +723,18 @@ public class HttpHelper
 	public final static void addCookie(HttpServletResponse response, String name, String value)
 	{
 		addCookie(response, new Cookie(name, value));
+	}
+	
+	/** 获取客户端 {@link Locale} */
+	public final static Locale getRequestLocale(HttpServletRequest request)
+	{
+		return request.getLocale();
+	}
+	
+	/** 获取客户端 {@link Locale} 列表 */
+	public final static List<Locale> getRequestLocales(HttpServletRequest request)
+	{
+		return Collections.list(request.getLocales());
 	}
 	
 	/** 获取 URL 的  BASE 路径 */

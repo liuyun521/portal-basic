@@ -1,7 +1,7 @@
 /*
  * Copyright Bruce Liang (ldcsaa@gmail.com)
  *
- * Version	: JessMA 3.2.3
+ * Version	: JessMA 3.3.1
  * Author	: Bruce Liang
  * Website	: http://www.jessma.org
  * Porject	: https://code.google.com/p/portal-basic
@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -111,6 +112,16 @@ public class ActionDispatcher implements Filter
 	private static final String SUFFIX_CHARACTER				= ".";
 	private static final String DEFAULT_ACTION_SUFFIX			= ".action";
 	
+	private static final String I18N_KEY						= "i18n";
+	private static final String I18N_DEF_LOCALE_KEY				= "default-locale";
+	private static final String I18N_DEF_BUNDLE_KEY				= "default-bundle";
+	
+	private static final String BEAN_VLD_KEY					= "bean-validation";
+	private static final String BEAN_VLD_ENABLE_KEY				= "enable";
+	private static final String BEAN_VLD_BUNDLE_KEY				= "bundle";
+	private static final String BEAN_VLD_VALIDATOR_KEY			= "validator";
+	private static final String BEAN_VLD_DEFAULT_VALIDATOR		= "org.jessma.mvc.validation.HibernateBeanValidator";
+	
 	private static final String ACTION_FILTERS_KEY				= "action-filters";
 	private static final String FILTER_KEY						= "filter";
 	private static final String FILTER_CLASS_KEY				= "class";
@@ -151,8 +162,9 @@ public class ActionDispatcher implements Filter
 	
 	private String encoding;
 	private String actionSuffix;
-	private Action.BaseType baseType;
-	private String baseHref;
+	private BasePathConfig basePath;
+	private I18nConfig i18nCfg;
+	private BeanValidation validation;
 	private ActionConvention convention;
 	private Map<String, ActionResult> globalResults;
 	private List<ActionException> globalExceptions;
@@ -174,16 +186,13 @@ public class ActionDispatcher implements Filter
 	//											Business Process 											//
 	/* **************************************************************************************************** */
 
+	@Override
 	public void init(FilterConfig filterConfig) throws ServletException
 	{
 		filterCfg	= filterConfig;
 		context		= filterConfig.getServletContext();
 		
 		attachInstance();
-		
-		/* 初始化 HttpHelper 的 Servlet Context */
-		HttpHelper.initializeServletContext(context);
-
 		loadConfig();
 	}
 
@@ -200,11 +209,18 @@ public class ActionDispatcher implements Filter
 		loadConfigFile(confFile, true, null);
 		loadActionFilters();
 		
-		context.setAttribute(Action.Constant.APP_ATTR_CONTEXT_PATH, context.getContextPath() + PATH_SEPARATOR);
-		context.setAttribute(Action.Constant.APP_ATTR_BASE_TYPE, baseType);
+		if(i18nCfg.defaultLocale != null)
+			Locale.setDefault(i18nCfg.defaultLocale);
+
+		ActionSupport.setBeanValidation(validation);
 		
-		if(baseType == Action.BaseType.MANUAL)
-			context.setAttribute(Action.Constant.APP_ATTR_BASE_PATH, baseHref);
+		context.setAttribute(Action.Constant.APP_ATTR_DEFAULT_APP_BUNDLE, i18nCfg.defaultBundle);
+		context.setAttribute(Action.Constant.APP_ATTR_DEFAULT_VLD_BUNDLE, validation.bundle);
+		context.setAttribute(Action.Constant.APP_ATTR_CONTEXT_PATH, context.getContextPath() + PATH_SEPARATOR);
+		context.setAttribute(Action.Constant.APP_ATTR_BASE_TYPE, basePath.baseType);
+		
+		if(basePath.baseType == Action.BaseType.MANUAL)
+			context.setAttribute(Action.Constant.APP_ATTR_BASE_PATH, basePath.baseHref);
 		else
 			context.removeAttribute(Action.Constant.APP_ATTR_BASE_PATH);
 	}
@@ -213,8 +229,9 @@ public class ActionDispatcher implements Filter
 	{
 		encoding			= null;
 		actionSuffix		= DEFAULT_ACTION_SUFFIX;
-		baseType			= Action.BaseType.AUTO;
-		baseHref			= null;
+		basePath			= new BasePathConfig();
+		i18nCfg				= new I18nConfig();
+		validation			= new BeanValidation();
 		convention			= new ActionConvention();
 		globalResults		= null;
 		globalExceptions	= null;
@@ -259,43 +276,23 @@ public class ActionDispatcher implements Filter
 		{
 			Element enc = global.element(ENCODING_KEY);
 			if(enc != null)
-			{
-				String str = enc.getTextTrim();
-				if(GeneralHelper.isStrNotEmpty(str))
-					encoding = str;
-			}
+				parseEncoding(enc);
 			
 			Element acSuffix = global.element(ACTION_SUFFIX_KEY);
 			if(acSuffix != null)
-			{
-				String str = acSuffix.getTextTrim();
-				if(GeneralHelper.isStrNotEmpty(str))
-				{
-					if(str.startsWith(SUFFIX_CHARACTER))
-						actionSuffix = str;
-					else
-						actionSuffix = SUFFIX_CHARACTER + str;
-				}
-			}
+				parseActionSuffix(acSuffix);
 			
-			Element basePath = global.element(BASE_PATH_KEY);
-			if(basePath != null)
-			{
-				String type = basePath.attributeValue(BASE_PATH_TYPE_KEY);
-				if(GeneralHelper.isStrNotEmpty(type))
-				{
-					baseType = Action.BaseType.fromString(type);
-					if(baseType == Action.BaseType.MANUAL)
-					{
-						baseHref = basePath.attributeValue(BASE_PATH_HREF_KEY);
-						if(GeneralHelper.isStrEmpty(baseHref))
-							throw new RuntimeException("parse base path fail ('href' attribute must be set if 'type' = \"manual\")");
-						
-						if(!baseHref.endsWith(PATH_SEPARATOR))
-							baseHref += PATH_SEPARATOR;
-					}
-				}
-			}
+			Element i18n = global.element(I18N_KEY);
+			if(i18n != null)
+				parseI8n(i18n);
+			
+			Element vld = global.element(BEAN_VLD_KEY);
+			if(vld != null)
+				parseBeanValidation(vld);
+			
+			Element bp = global.element(BASE_PATH_KEY);
+			if(bp != null)
+				parseBasePath(bp);
 			
 			Element acFilters = global.element(ACTION_FILTERS_KEY);
 			if(acFilters != null)
@@ -319,6 +316,80 @@ public class ActionDispatcher implements Filter
 		}
 		
 		ensureGlobalResultNone();
+	}
+
+	private void parseEncoding(Element enc)
+	{
+		String str = enc.getTextTrim();
+		if(GeneralHelper.isStrNotEmpty(str))
+			encoding = str;
+	}
+
+	private void parseActionSuffix(Element acSuffix)
+	{
+		String str = acSuffix.getTextTrim();
+		if(GeneralHelper.isStrNotEmpty(str))
+		{
+			if(str.startsWith(SUFFIX_CHARACTER))
+				actionSuffix = str;
+			else
+				actionSuffix = SUFFIX_CHARACTER + str;
+		}
+	}
+
+	private void parseI8n(Element i18n)
+	{
+		String dlc = i18n.attributeValue(I18N_DEF_LOCALE_KEY);
+		if(GeneralHelper.isStrNotEmpty(dlc))
+		{
+			i18nCfg.defaultLocale = GeneralHelper.getAvailableLocale(dlc);
+			if(i18nCfg.defaultLocale == null)
+				throw new RuntimeException(String.format("parse i18n fail (invalid default-locale '%s')", dlc));
+		}
+		
+		String bundle = i18n.attributeValue(I18N_DEF_BUNDLE_KEY);
+		if(GeneralHelper.isStrNotEmpty(bundle))
+			i18nCfg.defaultBundle = bundle;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void parseBeanValidation(Element vld) throws ClassNotFoundException, InstantiationException, IllegalAccessException
+	{
+		String enable = vld.attributeValue(BEAN_VLD_ENABLE_KEY);
+		validation.enable = GeneralHelper.str2Boolean(enable, true);
+		
+		String bundle = vld.attributeValue(BEAN_VLD_BUNDLE_KEY);
+		if(GeneralHelper.isStrNotEmpty(bundle))
+			validation.bundle = bundle;
+	
+		if(validation.enable)
+		{
+			String vldClass = vld.attributeValue(BEAN_VLD_VALIDATOR_KEY);
+			if(GeneralHelper.isStrEmpty(vldClass))
+				vldClass = BEAN_VLD_DEFAULT_VALIDATOR;
+			
+			Class<? extends BeanValidator> clazz = (Class<? extends BeanValidator>)Class.forName(vldClass);
+			validation.validator = clazz.newInstance();
+			validation.validator.init();
+		}
+	}
+
+	private void parseBasePath(Element bp)
+	{
+		String type = bp.attributeValue(BASE_PATH_TYPE_KEY);
+		if(GeneralHelper.isStrNotEmpty(type))
+		{
+			basePath.baseType = Action.BaseType.fromString(type);
+			if(basePath.baseType == Action.BaseType.MANUAL)
+			{
+				basePath.baseHref = bp.attributeValue(BASE_PATH_HREF_KEY);
+				if(GeneralHelper.isStrEmpty(basePath.baseHref))
+					throw new RuntimeException("parse base path fail ('href' attribute must be set if 'type' = \"manual\")");
+				
+				if(!basePath.baseHref.endsWith(PATH_SEPARATOR))
+					basePath.baseHref += PATH_SEPARATOR;
+			}
+		}
 	}
 
 	private void parseActionConvention(Element acConv)
@@ -690,11 +761,15 @@ public class ActionDispatcher implements Filter
 		}
 	}
 
+	@Override
 	public void destroy()
 	{
 		while(!filterList.isEmpty())
 			filterList.removeLast().destroy();
 		
+		if(validation.validator != null)
+			validation.validator.destroy();
+
 		resultAliasMap		= null;
 		convACMap			= null;
 		filterList			= null;
@@ -709,11 +784,9 @@ public class ActionDispatcher implements Filter
 		filterCfg			= null;
 		
 		detachInstance();
-		
-		/* 释放 HttpHelper 的 Servlet Context */
-		HttpHelper.unInitializeServletContext();
 	}
 
+	@Override
 	public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException
 	{
 		HttpServletRequest request	 = (HttpServletRequest)req;
@@ -871,20 +944,16 @@ public class ActionDispatcher implements Filter
 	{
 		Action action = aec.container.acClass.newInstance();
 		
-		if(action instanceof ActionContextAware)
+		action.setServletContext(context);
+		action.setRequest(request);
+		action.setResponse(response);
+
+		if(action instanceof ActionSupport)
 		{
-			ActionContextAware aw = (ActionContextAware)action;
-			aw.setServletContext(context);
-			aw.setRequest(request);
-			aw.setResponse(response);
-		}
-		
-		if(action instanceof AsyncContextAware)
-		{
-			AsyncContextAware aa = (AsyncContextAware)action;
-			aa.setActionDispatcher(this);
-			aa.setActionPackage(pkg);
-			aa.setActionEntryConfig(aec);
+			ActionSupport asp = (ActionSupport)action;
+			asp.setActionDispatcher(this);
+			asp.setActionPackage(pkg);
+			asp.setActionEntryConfig(aec);
 		}
 		
 		parseFormBean(aec, action, request.getParameterMap());
@@ -913,11 +982,11 @@ public class ActionDispatcher implements Filter
 		switch(ars.type)
 		{
 		case DISPATCH:
-			if(baseType == Action.BaseType.AUTO)
+			if(basePath.baseType == Action.BaseType.AUTO)
 				request.setAttribute(Action.Constant.REQ_ATTR_BASE_PATH, HttpHelper.getRequestBasePath(request));
 			
 			request.setAttribute(Action.Constant.REQ_ATTR_ACTION, action);
-			RequestDispatcher rd = request.getRequestDispatcher(ars.path);
+			RequestDispatcher rd = request.getRequestDispatcher(response.encodeURL(ars.path));
 			
 			if(rd != null)
 				rd.forward(request, response);
@@ -929,7 +998,7 @@ public class ActionDispatcher implements Filter
 			
 			break;
 		case REDIRECT:
-			response.sendRedirect(ars.path);
+			response.sendRedirect(response.encodeRedirectURL(ars.path));
 			break;
 		case CHAIN:
 			request.setAttribute(Action.Constant.REQ_ATTR_ACTION, action);
@@ -942,22 +1011,39 @@ public class ActionDispatcher implements Filter
 		}
 	}
 	
-	private static final <T> void parseFormBean(ActionEntryConfig aec, Action action, Map<String, T> paramMap)
+	private final <T> void parseFormBean(ActionEntryConfig aec, Action action, Map<String, T> paramMap)
 	{
 		if(aec.formBeanAttr != null)
 		{
+			Object formBean = null;
+			
 			if(aec.formBeanAttr.property != null)
 			{
-				Object bean = BeanHelper.createBean(aec.formBeanAttr.property.getPropertyType(), paramMap);
-				BeanHelper.setProperty(action, aec.formBeanAttr.property, bean);
+				formBean = BeanHelper.createBean(aec.formBeanAttr.property.getPropertyType(), paramMap);
+				BeanHelper.setProperty(action, aec.formBeanAttr.property, formBean);
 			}
 			else if(aec.formBeanAttr.field != null)
 			{
-				Object bean = BeanHelper.createBean(aec.formBeanAttr.field.getType(), paramMap);
-				BeanHelper.setFieldValue(action, aec.formBeanAttr.field, bean);
+				formBean = BeanHelper.createBean(aec.formBeanAttr.field.getType(), paramMap);
+				BeanHelper.setFieldValue(action, aec.formBeanAttr.field, formBean);
 			}
 			else
-				BeanHelper.setPropertiesOrFieldValues(action, paramMap);
+			{
+				formBean = action;
+				BeanHelper.setPropertiesOrFieldValues(formBean, paramMap);
+			}
+			
+			if(action instanceof ActionSupport)
+			{
+				ActionSupport asp = (ActionSupport)action;
+				asp.setFormBean(formBean);
+				
+				if(validation.enable)
+				{
+					asp.setAutoValidation(aec.formBeanAttr.validate);
+					asp.setValidationGroups(aec.formBeanAttr.groups);
+				}
+			}
 		}
 	}
 
@@ -981,6 +1067,8 @@ public class ActionDispatcher implements Filter
 		{
 			private PropertyDescriptor property;
 			private Field field;
+			private boolean validate;
+			private Class<?>[] groups;
 			
 			private FormBeanAttr()
 			{
@@ -1053,6 +1141,9 @@ public class ActionDispatcher implements Filter
 						throw new RuntimeException(msg);
 					}
 				}
+				
+				formBeanAttr.validate	= formBean.validate();
+				formBeanAttr.groups		= formBean.groups();
 			}
 		}
 	}
@@ -1305,6 +1396,25 @@ public class ActionDispatcher implements Filter
 		
 		return exceptions;
 	}
+	
+	private static class BasePathConfig
+	{
+		Action.BaseType baseType = Action.BaseType.AUTO;
+		String baseHref;
+	}
+	
+	private static class I18nConfig
+	{
+		Locale defaultLocale;
+		String defaultBundle = Action.Constant.DEFAULT_APP_BUNDLE;
+	}
+	
+	static class BeanValidation
+	{
+		boolean enable;
+		BeanValidator validator;
+		String bundle = Action.Constant.DEFAULT_VLD_BUNDLE;
+	}
 
 	private static class ActionConvention
 	{
@@ -1518,12 +1628,20 @@ public class ActionDispatcher implements Filter
 								"(only one such instance can be created for every application)",
 								ActionDispatcher.class.getName()));
 		instance = this;
+		
+		/* 初始化 HttpHelper 的 Servlet Context */
+		HttpHelper.initializeServletContext(context);
 	}
 	
 	private void detachInstance()
 	{
 		if(instance == this)
-			instance = null;
+		{
+			/* 释放 HttpHelper 的 Servlet Context */
+			HttpHelper.unInitializeServletContext();
+
+			instance = null;	
+		}
 	}
 	
 	/** 暂停接收 HTTP 请求（通常在执行 {@linkplain ActionDispatcher#reload(long) reload(long)} 前调用）<br>
@@ -1550,15 +1668,16 @@ public class ActionDispatcher implements Filter
 	 */
 	synchronized public void reload(long delay) throws Exception
 	{
-		String encoding				= this.encoding;
-		String actionSuffix			= this.actionSuffix;
-		Action.BaseType baseType	= this.baseType;
-		String baseHref				= this.baseHref;
-		ActionConvention convention	= this.convention;
+		String encoding							= this.encoding;
+		String actionSuffix						= this.actionSuffix;
+		BasePathConfig basePath					= this.basePath;
+		I18nConfig i18nCfg						= this.i18nCfg;
+		BeanValidation validation				= this.validation;
+		ActionConvention convention				= this.convention;
 		Map<String, ActionResult> globalResults	= this.globalResults;
 		List<ActionException> globalExceptions	= this.globalExceptions;
-		List<ActionFilterInfo> filterInfoList						= this.filterInfoList;
-		LinkedList<ActionFilter> filterList 						= this.filterList;
+		List<ActionFilterInfo> filterInfoList	= this.filterInfoList;
+		LinkedList<ActionFilter> filterList 	= this.filterList;
 		Map<String, Map<String, ActionEntryConfig>> actionPkgMap	= this.actionPkgMap;
 		Map<Method, LinkedList<ActionFilter>> filterCache			= this.filterCache;
 		Map<Class<ActionFilter>, ActionFilter> filterMap			= this.filterMap;
@@ -1568,10 +1687,13 @@ public class ActionDispatcher implements Filter
 		try
 		{
 			GeneralHelper.waitFor(delay);
-
+			
 			for(ActionFilter filter : filterList)
 				filter.destroy();
 			
+			if(validation.validator != null)
+				validation.validator.destroy();
+
 			loadConfig();
 		}
 		catch(Exception e)
@@ -1579,13 +1701,20 @@ public class ActionDispatcher implements Filter
 			for(ActionFilter filter : this.filterList)
 				filter.destroy();
 
+			if(this.validation.validator != null)
+				this.validation.validator.destroy();
+			
+			if(validation.validator != null)
+				validation.validator.init();
+
 			for(ActionFilter filter : filterList)
 				filter.init();
 
 			this.encoding			= encoding;
 			this.actionSuffix		= actionSuffix;
-			this.baseType			= baseType;
-			this.baseHref			= baseHref;
+			this.basePath			= basePath;
+			this.i18nCfg			= i18nCfg;
+			this.validation			= validation;
 			this.convention			= convention;
 			this.globalResults		= globalResults;
 			this.globalExceptions	= globalExceptions;

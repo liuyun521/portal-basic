@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <APP	xmlns="http://www.jessma.org"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/app-config-3.2.xsd">
+		xsi:schemaLocation="http://www.jessma.org http://www.jessma.org/schema/app-config-3.3.xsd">
 		
 	<!-- 系统配置（必填） -->
 	<system>
